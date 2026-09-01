@@ -17,6 +17,14 @@ This document defines the domain model and vocabulary for the Solar.Captcha proj
 | **Renderer Call** | `Render(string chars) → GlyphRenderResult` — per-request, no caching, no font path. |
 | **Explicit Mode Selection** | The caller chooses the renderer implementation at call time (DI resolves either static or dynamic). |
 
+## Implementation Approach
+
+The dynamic glyph renderer is implemented in a **single phase** with **no external font-rendering dependencies**:
+
+- **Lightweight in-repo TrueType/OpenType parser** reads font tables (`head`, `loca`, `glyf`, `hmtx`/`vmtx`, `cmap`) to rasterize glyphs to the 8×14 grid.
+- **No SixLabors** or other external font libraries.
+- Platform-agnostic: runs on Windows and Linux (Docker).
+
 ## See Also
 
 - [ADR-001: Glyph Format](./docs/adr/0001-glyph-format.md)
