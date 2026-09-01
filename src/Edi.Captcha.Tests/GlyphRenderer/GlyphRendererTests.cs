@@ -14,7 +14,7 @@ public class GlyphRendererTests
     [SetUp]
     public void SetUp()
     {
-        _testFontPath = @"C:\Windows\Fonts\arial.ttf";
+        _testFontPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "Fonts", "arial.ttf");
         _options = new GlyphRenderOptions
         {
             FontPath = _testFontPath,

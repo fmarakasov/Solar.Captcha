@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NUnit" Version="4.6.0" />
@@ -11,5 +12,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Edi.Captcha\Edi.Captcha.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Fonts\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
