@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <Version>1.0.1</Version>
+    <Authors>Edi Wang</Authors>
+    <Company>edi.wang</Company>
+    <Copyright>(c) 2026 edi.wang</Copyright>
+    <TargetFrameworks>net11.0</TargetFrameworks>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/fmarakasov/Solar.Captcha</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/fmarakasov/Solar.Captcha</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+</Project>

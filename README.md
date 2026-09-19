@@ -1,24 +1,25 @@
-﻿# Edi.Captcha.AspNetCore
-The Captcha module used in my blog
+﻿# Solar.Captcha
 
-[![.NET](https://github.com/EdiWang/Edi.Captcha.AspNetCore/actions/workflows/dotnet.yml/badge.svg)](https://github.com/EdiWang/Edi.Captcha.AspNetCore/actions/workflows/dotnet.yml)
+Generate and validate Captcha images in ASP.NET Core. Based on [Edi.Captcha.AspNetCore](https://github.com/EdiWang/Edi.Captcha.AspNetCore) by Edi Wang.
+
+[![.NET](https://github.com/fmarakasov/Solar.Captcha/actions/workflows/dotnet.yml/badge.svg)](https://github.com/fmarakasov/Solar.Captcha/actions/workflows/dotnet.yml)
 
 [![NuGet][main-nuget-badge]][main-nuget]
 
-[main-nuget]: https://www.nuget.org/packages/Edi.Captcha/
-[main-nuget-badge]: https://img.shields.io/nuget/v/Edi.Captcha.svg?style=flat-square&label=nuget
+[main-nuget]: https://www.nuget.org/packages/Solar.Captcha/
+[main-nuget-badge]: https://img.shields.io/nuget/v/Solar.Captcha.svg?style=flat-square&label=nuget
 
 ## Install
 
 NuGet Package Manager
 ```
-Install-Package Edi.Captcha
+Install-Package Solar.Captcha
 ```
 
 or .NET CLI
 
 ```
-dotnet add package Edi.Captcha
+dotnet add package Solar.Captcha
 ```
 
 ## Session-Based Captcha (Traditional Approach)
@@ -228,7 +229,7 @@ public class StatelessHomeModel
 
 ### 3. Example Controller and View
 
-See: [src\Edi.Captcha.SampleApp\Controllers\StatelessController.cs](src/Edi.Captcha.SampleApp/Controllers/StatelessController.cs) and [src\Edi.Captcha.SampleApp\Views\Stateless\Index.cshtml](src/Edi.Captcha.SampleApp/Views/Stateless/Index.cshtml) for a complete example.
+See: [src\Solar.Captcha.SampleApp\Controllers\StatelessController.cs](src/Solar.Captcha.SampleApp/Controllers/StatelessController.cs) and [src\Solar.Captcha.SampleApp\Views\Stateless\Index.cshtml](src/Solar.Captcha.SampleApp/Views/Stateless/Index.cshtml) for a complete example.
 
 ### Cluster/Load Balancer Configuration
 
@@ -374,4 +375,4 @@ public void ConfigureServices(IServiceCollection services)
 
 ### 4. Example Controller and View
 
-See: [src\Edi.Captcha.SampleApp\Controllers\SharedKeyStatelessController.cs](src/Edi.Captcha.SampleApp/Controllers/SharedKeyStatelessController.cs) and [src\Edi.Captcha.SampleApp\Views\SharedKeyStateless\Index.cshtml](src/Edi.Captcha.SampleApp/Views/SharedKeyStateless/Index.cshtml) for a complete example.
+See: [src\Solar.Captcha.SampleApp\Controllers\SharedKeyStatelessController.cs](src/Solar.Captcha.SampleApp/Controllers/SharedKeyStatelessController.cs) and [src\Solar.Captcha.SampleApp\Views\SharedKeyStateless\Index.cshtml](src/Solar.Captcha.SampleApp/Views/SharedKeyStateless/Index.cshtml) for a complete example.
