@@ -375,4 +375,4 @@ public void ConfigureServices(IServiceCollection services)
 
 ### 4. Example Controller and View
 
-See: [src\Solar.Captcha.SampleApp\Controllers\SharedKeyStatelessController.cs](src/Solar.Captcha.SampleApp/Controllers/SharedKeyStatelessController.cs) and [src\Solar.Captcha.SampleApp\Views\SharedKeyStateless\Index.cshtml](src/Solarrc/Solar.Captcha.SampleApp/Views/SharedKeyStateless/Index.cshtml) for a complete example.
+See: [src\Solar.Captcha.SampleApp\Controllers\SharedKeyStatelessController.cs](src/Solar.Captcha.SampleApp/Controllers/SharedKeyStatelessController.cs) and [src\Solar.Captcha.SampleApp\Views\SharedKeyStateless\Index.cshtml](src/Solar.Captcha.SampleApp/Views/SharedKeyStateless/Index.cshtml) for a complete example.
