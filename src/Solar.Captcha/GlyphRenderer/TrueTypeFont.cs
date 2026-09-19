@@ -703,17 +703,19 @@ internal sealed class TrueTypeFont
             int dx = (flags & 0x0002) != 0 ? arg1 : 0;
             int dy = (flags & 0x0002) != 0 ? arg2 : 0;
 
-            short xScale = 1;
-            short yScale = 1;
-            // WE_HAVE_A_SCALE
-            if ((flags & 0x0008) != 0)
+            // Composite transforms are signed 2.14 fixed-point (F2Dot14) values, where 1.0 is
+            // encoded as 16384. They are applied as floats: multiplying by the raw value would
+            // mis-scale components by 16384x (and overflow for scaled composites such as 'Э').
+            // Defaults are the identity matrix; only a diagonal (scale) or full 2x2 may replace it.
+            float m00 = 1f, m01 = 0f, m10 = 0f, m11 = 1f;
+            if ((flags & 0x0008) != 0) // WE_HAVE_A_SCALE
             {
                 if (pos + 2 > end)
                 {
                     break;
                 }
 
-                xScale = yScale = BinaryPrimitives.ReadInt16BigEndian(_data.AsSpan(pos, 2));
+                m00 = m11 = ReadF2Dot14(pos);
                 pos += 2;
             }
             else if ((flags & 0x0040) != 0) // WE_HAVE_AN_X_AND_Y_SCALE
@@ -723,8 +725,8 @@ internal sealed class TrueTypeFont
                     break;
                 }
 
-                xScale = BinaryPrimitives.ReadInt16BigEndian(_data.AsSpan(pos, 2));
-                yScale = BinaryPrimitives.ReadInt16BigEndian(_data.AsSpan(pos + 2, 2));
+                m00 = ReadF2Dot14(pos);
+                m11 = ReadF2Dot14(pos + 2);
                 pos += 4;
             }
             else if ((flags & 0x0080) != 0) // WE_HAVE_A_TWO_BY_TWO
@@ -734,7 +736,12 @@ internal sealed class TrueTypeFont
                     break;
                 }
 
-                pos += 8; // xscale, scale01, scale10, yscale — simplified: skip
+                // [xscale scale01; scale10 yscale]
+                m00 = ReadF2Dot14(pos);
+                m01 = ReadF2Dot14(pos + 2);
+                m10 = ReadF2Dot14(pos + 4);
+                m11 = ReadF2Dot14(pos + 6);
+                pos += 8;
             }
 
             var component = GetOutline(glyphIndex);
@@ -749,11 +756,11 @@ internal sealed class TrueTypeFont
             {
                 int cx = component.Xs[c];
                 int cy = component.Ys[c];
-                // Apply scale then translation (offsets are in font units).
-                int sx = (int)(cx * xScale / 1) + dx;
-                int sy = (int)(cy * yScale / 1) + dy;
-                xs.Add(sx);
-                ys.Add(sy);
+                // Apply the component transform, then the translation (offsets are in font units).
+                float sx = (m00 * cx) + (m01 * cy) + dx;
+                float sy = (m10 * cx) + (m11 * cy) + dy;
+                xs.Add((int)MathF.Round(sx));
+                ys.Add((int)MathF.Round(sy));
                 onCurve.Add(component.OnCurve[c]);
             }
 
@@ -778,6 +785,15 @@ internal sealed class TrueTypeFont
 
         return new GlyphOutline(xMin, yMin, xMax, yMax, endPts.ToArray(), xs.ToArray(), ys.ToArray(), onCurve.ToArray());
     }
+
+    /// <summary>
+    /// Reads a signed 2.14 fixed-point value, the format used for composite glyph transforms
+    /// and font variation values, where <c>16384</c> represents <c>1.0</c>.
+    /// </summary>
+    /// <param name="offset">The offset of the 2-byte value in the font data.</param>
+    /// <returns>The decoded value as a float (for example <c>16384</c> decodes to <c>1.0f</c>).</returns>
+    private float ReadF2Dot14(int offset) =>
+        BinaryPrimitives.ReadInt16BigEndian(_data.AsSpan(offset, 2)) / 16384f;
 
     private readonly record struct TableRecord(string Tag, uint Checksum, uint Offset, uint Length);
 }

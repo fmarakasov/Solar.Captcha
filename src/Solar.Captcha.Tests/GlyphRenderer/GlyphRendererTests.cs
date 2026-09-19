@@ -339,6 +339,42 @@ public class GlyphRendererTests
         ]);
     }
 
+    // These Cyrillic characters are composite glyphs whose component carries a signed 2.14
+    // fixed-point (F2Dot14) transform with xScale = -1.0 (a horizontal mirror). Treating the raw
+    // 16384 as an integer scaled the component ~16384x outside the glyph's own bounding box.
+    [TestCase('Э')] // U+042D
+    [TestCase('Я')] // U+042F
+    [TestCase('э')] // U+044D
+    public void TrueTypeFont_GetOutline_WithTransformedCompositeGlyph_StaysWithinDeclaredBounds(char character)
+    {
+        // Arrange
+        var font = TrueTypeFont.Load(_testFontPath);
+        int glyphIndex = font.GetGlyphIndex(character);
+
+        // Act
+        var outline = font.GetOutline(glyphIndex);
+
+        // Assert
+        Assert.That(outline, Is.Not.Null, $"'{character}' should have an outline");
+        Assert.That(outline.PointCount, Is.GreaterThan(0), $"'{character}' should have points");
+
+        int minX = int.MaxValue, maxX = int.MinValue, minY = int.MaxValue, maxY = int.MinValue;
+        for (int i = 0; i < outline.PointCount; i++)
+        {
+            minX = Math.Min(minX, outline.Xs[i]);
+            maxX = Math.Max(maxX, outline.Xs[i]);
+            minY = Math.Min(minY, outline.Ys[i]);
+            maxY = Math.Max(maxY, outline.Ys[i]);
+        }
+
+        // The glyph header carries the true bounding box in font units, so decoded component
+        // coordinates must land inside it (one unit of slack for fixed-point rounding).
+        Assert.That(minX, Is.GreaterThanOrEqualTo(outline.XMin - 1), $"'{character}' minX");
+        Assert.That(maxX, Is.LessThanOrEqualTo(outline.XMax + 1), $"'{character}' maxX");
+        Assert.That(minY, Is.GreaterThanOrEqualTo(outline.YMin - 1), $"'{character}' minY");
+        Assert.That(maxY, Is.LessThanOrEqualTo(outline.YMax + 1), $"'{character}' maxY");
+    }
+
     [Test]
     public void GlyphRenderOptions_GlyphGrid_MatchesStaticGlyphFormat()
     {
