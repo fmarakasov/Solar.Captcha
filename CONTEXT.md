@@ -16,6 +16,7 @@ This document defines the domain model and vocabulary for the Solar.Captcha proj
 | **Renderer Construction** | The renderer is constructed/injected once (per font), with font loaded from `GlyphRenderOptions`. |
 | **Renderer Call** | `Render(string chars) → GlyphRenderResult` — per-request, no caching, no font path. |
 | **Explicit Mode Selection** | The caller chooses the renderer implementation at call time (DI resolves either static or dynamic). |
+| **Glyph Pseudographics** | The ASCII-art rendering of a Glyph used in tests (`GlyphAsciiArt`): one text row per glyph row, `#` = set pixel, `.` = unset. Makes glyphs reviewable in test output. |
 
 ## Implementation Approach
 

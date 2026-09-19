@@ -10,9 +10,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/Edi.Captcha.SampleApp/bin/Debug/net8.0/Edi.Captcha.SampleApp.dll",
+            "program": "${workspaceFolder}/src/Solar.Captcha.SampleApp/bin/Debug/net8.0/Solar.Captcha.SampleApp.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/Edi.Captcha.SampleApp",
+            "cwd": "${workspaceFolder}/src/Solar.Captcha.SampleApp",
             "stopAtEntry": false,
             // Enable launching a web browser when ASP.NET Core starts. For more information: https://aka.ms/VSCode-CS-LaunchJson-WebBrowser
             "serverReadyAction": {

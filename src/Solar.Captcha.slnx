@@ -6,7 +6,7 @@
     <File Path="../LICENSE" />
     <File Path="../README.md" />
   </Folder>
-  <Project Path="Edi.Captcha.SampleApp/Edi.Captcha.SampleApp.csproj" />
-  <Project Path="Edi.Captcha.Tests/Edi.Captcha.Tests.csproj" />
-  <Project Path="Edi.Captcha/Edi.Captcha.csproj" />
+  <Project Path="Solar.Captcha.SampleApp/Solar.Captcha.SampleApp.csproj" />
+  <Project Path="Solar.Captcha.Tests/Solar.Captcha.Tests.csproj" />
+  <Project Path="Solar.Captcha/Solar.Captcha.csproj" />
 </Solution>

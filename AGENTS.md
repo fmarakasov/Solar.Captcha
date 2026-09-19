@@ -1,26 +1,26 @@
-# Copilot Instructions for Edi.Captcha.AspNetCore
+# Copilot Instructions for Solar.Captcha
 
-This repository contains `Edi.Captcha`, an ASP.NET Core captcha library, plus a sample MVC app and NUnit tests. Treat the package project as a public NuGet library: keep changes small, preserve public API compatibility unless the request explicitly calls for a breaking change, and update README/sample usage when behavior or setup changes.
+This repository contains `Solar.Captcha`, an ASP.NET Core captcha library, plus a sample MVC app and NUnit tests. Treat the package project as a public NuGet library: keep changes small, preserve public API compatibility unless the request explicitly calls for a breaking change, and update README/sample usage when behavior or setup changes.
 
 ## Project Layout
 
-- `src/Edi.Captcha/` is the reusable library.
-- `src/Edi.Captcha.SampleApp/` demonstrates session-based, stateless, and shared-key stateless captcha flows.
-- `src/Edi.Captcha.Tests/` contains NUnit tests with Moq where dependencies need to be isolated.
-- `src/Edi.Captcha.slnx` is the solution file.
+- `src/Solar.Captcha/` is the reusable library.
+- `src/Solar.Captcha.SampleApp/` demonstrates session-based, stateless, and shared-key stateless captcha flows.
+- `src/Solar.Captcha.Tests/` contains NUnit tests with Moq where dependencies need to be isolated.
+- `src/Solar.Captcha.slnx` is the solution file.
 
 ## Target Frameworks and Commands
 
 - The library targets `net8.0;net10.0`; do not use APIs unavailable to either target.
 - The sample app and test project target `net10.0`.
 - Prefer validating library changes with:
-  - `dotnet build src/Edi.Captcha.slnx`
-  - `dotnet test src/Edi.Captcha.Tests/Edi.Captcha.Tests.csproj`
-- The VS Code build task builds `src/Edi.Captcha.SampleApp/Edi.Captcha.SampleApp.csproj`; use it when checking sample app compilation.
+  - `dotnet build src/Solar.Captcha.slnx`
+  - `dotnet test src/Solar.Captcha.Tests/Solar.Captcha.Tests.csproj`
+- The VS Code build task builds `src/Solar.Captcha.SampleApp/Solar.Captcha.SampleApp.csproj`; use it when checking sample app compilation.
 
 ## C# Style
 
-- Use file-scoped namespaces under `namespace Edi.Captcha;` or `namespace Edi.Captcha.Tests;`.
+- Use file-scoped namespaces under `namespace Solar.Captcha;` or `namespace Solar.Captcha.Tests;`.
 - Follow the existing concise C# style: expression-bodied members are fine for simple forwarding methods, and modern collection expressions like `[]` are already used.
 - Keep public option classes simple mutable POCOs with sensible defaults.
 - Keep comments sparse and useful. Existing comments explain non-obvious image, crypto, or validation behavior.
@@ -34,7 +34,7 @@ This repository contains `Edi.Captcha`, an ASP.NET Core captcha library, plus a 
 - Preserve the 1-32 code length validation behavior used by letter captcha implementations.
 - For session-based captcha, keep session null checks explicit and continue removing the stored code by default after validation.
 - For stateless captcha, keep token validation fail-closed: invalid, expired, malformed, or corrupted tokens should return `false`, not throw to callers.
-- For Data Protection based stateless captcha, use the existing protector purpose string `Edi.Captcha.Stateless` unless a migration strategy is part of the change.
+- For Data Protection based stateless captcha, use the protector purpose string `Solar.Captcha.Stateless`.
 - For shared-key stateless captcha, require a Base64-encoded 256-bit key and do not log, expose, or hard-code real keys.
 - Respect `BlockedCodes` and keep the retry guard to avoid infinite loops when configured letters cannot produce an allowed code.
 
