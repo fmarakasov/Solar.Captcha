@@ -59,7 +59,7 @@ public static class CaptchaServiceCollectionExtensions
     /// The options will be validated at registration time (fail fast).
     /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="configureOptions">Optional action to configure the renderer options (font path, glyph size).</param>
+    /// <param name="configureOptions">Optional action to configure the renderer options (font path).</param>
     /// <returns>The service collection for chaining.</returns>
     /// <exception cref="ArgumentException">Thrown when options are invalid (font file not found, etc.).</exception>
     public static IServiceCollection AddGlyphRenderer(

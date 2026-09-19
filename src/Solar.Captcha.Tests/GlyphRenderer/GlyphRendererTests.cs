@@ -18,9 +18,7 @@ public class GlyphRendererTests
         _testFontPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "Fonts", "arial.ttf");
         _options = new GlyphRenderOptions
         {
-            FontPath = _testFontPath,
-            GlyphWidth = 8,
-            GlyphHeight = 14
+            FontPath = _testFontPath
         };
     }
 
@@ -339,6 +337,74 @@ public class GlyphRendererTests
             "........",
             "........",
         ]);
+    }
+
+    [Test]
+    public void GlyphRenderOptions_GlyphGrid_MatchesStaticGlyphFormat()
+    {
+        // Assert: the dynamic renderer targets the same grid the image pipeline consumes
+        // (ADR-001), so a dynamic glyph is interchangeable with a static one.
+        Assert.That(GlyphRenderOptions.GlyphWidth, Is.EqualTo(CaptchaFont.GlyphWidth));
+        Assert.That(GlyphRenderOptions.GlyphHeight, Is.EqualTo(CaptchaFont.GlyphHeight));
+    }
+
+    [TestCase('W')]
+    [TestCase('M')]
+    [TestCase('@')]
+    public void GlyphRenderer_Render_WithWideGlyph_ProducesNonEmptyGlyphAtGridSize(char character)
+    {
+        // Arrange
+        var renderer = new Solar.Captcha.GlyphRenderer.GlyphRenderer(_options);
+
+        // Act
+        var result = renderer.Render(character.ToString());
+
+        // Assert: guards the regression where a glyph was centered across a grid wider than
+        // one byte and the columns past the first byte were dropped (0x80 >> px == 0 for
+        // px >= 8), silently returning a clipped — or entirely blank — glyph as a success.
+        Assert.That(result.Glyphs.ContainsKey(character), Is.True, $"'{character}' should render");
+
+        var glyph = result.Glyphs[character];
+        Assert.That(glyph.Length, Is.EqualTo(GlyphRenderOptions.GlyphHeight));
+
+        bool hasPixels = false;
+        foreach (byte row in glyph)
+        {
+            if (row != 0x00)
+            {
+                hasPixels = true;
+                break;
+            }
+        }
+
+        Assert.That(hasPixels, Is.True, $"'{character}' should have at least one pixel set");
+    }
+
+    // Code points are passed as integers rather than char literals: NUnit names parameterized tests
+    // from the argument text and silently collapses cases whose names are identical or unprintable,
+    // which would drop the U+FFFF case that exercises the '.notdef' (index 0) path.
+    [TestCase(0xFFFF)]
+    [TestCase(0xFFFE)]
+    [TestCase(0xE000)]
+    [TestCase(0x0378)]
+    public void GlyphRenderer_Render_WithCharacterMissingFromFont_ReportsCharacterNotInFont(int codePoint)
+    {
+        // Arrange
+        char character = (char)codePoint;
+        var renderer = new Solar.Captcha.GlyphRenderer.GlyphRenderer(_options);
+
+        // Act
+        var result = renderer.Render(character.ToString());
+
+        // Assert: a character with no cmap entry resolves to glyph index 0 ('.notdef') in some
+        // cmap layouts (Arial maps U+FFFF that way), so index 0 must be reported as a failure
+        // rather than rasterized as a success that returns .notdef's outline.
+        Assert.That(result.Glyphs.ContainsKey(character), Is.False, $"'{character}' must not render");
+        Assert.That(result.Failures.ContainsKey(character), Is.True, $"'{character}' should be reported as failed");
+        Assert.That(
+            result.Failures[character],
+            Is.EqualTo(GlyphRenderFailureReason.CharacterNotInFont),
+            $"'{character}' should be reported as {nameof(GlyphRenderFailureReason.CharacterNotInFont)}");
     }
 
     /// <summary>

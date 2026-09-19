@@ -3,7 +3,7 @@ namespace Solar.Captcha.GlyphRenderer;
 /// <summary>
 /// Defines the reason a character could not be rendered to a glyph.
 /// </summary>
-internal enum GlyphRenderFailureReason
+public enum GlyphRenderFailureReason
 {
     /// <summary>The font does not contain a glyph for the requested character.</summary>
     CharacterNotInFont,

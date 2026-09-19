@@ -4,7 +4,7 @@ namespace Solar.Captcha.GlyphRenderer;
 /// Commands the rendering of characters to glyph bitmaps in the
 /// Solar.Captcha glyph format (14 rows × 8 bits, MSB = leftmost pixel).
 /// </summary>
-internal interface IGlyphRenderer
+public interface IGlyphRenderer
 {
     /// <summary>
     /// Renders the requested characters to <see cref="byte"/>[14] glyphs.

@@ -10,14 +10,18 @@ namespace Solar.Captcha.GlyphRenderer;
 internal static class GlyphRasterizer
 {
     /// <summary>
-    /// Rasterizes the outline at the given pixel size using uniform scaling that
-    /// preserves aspect ratio, horizontal centering, baseline alignment, and
-    /// even-odd fill of the flattened outline (see ADR-002/003).
+    /// Rasterizes the outline into the fixed Solar.Captcha glyph grid (8×14 pixels, one byte
+    /// per row, MSB = leftmost pixel — see ADR-001) using uniform scaling that preserves
+    /// aspect ratio, horizontal centering, baseline alignment, and even-odd fill of the
+    /// flattened outline (see ADR-002/003).
     /// </summary>
-    public static byte[] Rasterize(GlyphOutline outline, TrueTypeFont font, int width, int height)
+    public static byte[] Rasterize(GlyphOutline outline, TrueTypeFont font)
     {
+        const int width = CaptchaFont.GlyphWidth;
+        const int height = CaptchaFont.GlyphHeight;
+
         var result = new byte[height];
-        if (outline.PointCount == 0 || width <= 0 || height <= 0)
+        if (outline.PointCount == 0)
         {
             return result;
         }

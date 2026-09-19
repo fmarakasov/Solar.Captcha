@@ -12,7 +12,6 @@ namespace Solar.Captcha.GlyphRenderer;
 internal sealed class GlyphRenderer : IGlyphRenderer
 {
     private readonly TrueTypeFont _font;
-    private readonly GlyphRenderOptions _options;
 
     /// <summary>
     /// Creates a renderer from pre-validated options.
@@ -21,7 +20,8 @@ internal sealed class GlyphRenderer : IGlyphRenderer
     /// <exception cref="GlyphRendererException">Thrown if the font cannot be loaded.</exception>
     public GlyphRenderer(GlyphRenderOptions options)
     {
-        _options = options ?? throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
+
         try
         {
             _font = TrueTypeFont.Load(options.FontPath);
@@ -65,8 +65,11 @@ internal sealed class GlyphRenderer : IGlyphRenderer
                 continue;
             }
 
+            // Glyph index 0 is the TrueType '.notdef' glyph: GetGlyphIndex returns it for a
+            // character with no cmap entry, so 0 means "not in font" rather than a successful
+            // (blank) render.
             int glyphIndex = _font.GetGlyphIndex(c);
-            if (glyphIndex < 0)
+            if (glyphIndex <= 0)
             {
                 failures[c] = GlyphRenderFailureReason.CharacterNotInFont;
                 continue;
@@ -81,7 +84,7 @@ internal sealed class GlyphRenderer : IGlyphRenderer
 
             try
             {
-                byte[] glyph = GlyphRasterizer.Rasterize(outline, _font, _options.GlyphWidth, _options.GlyphHeight);
+                byte[] glyph = GlyphRasterizer.Rasterize(outline, _font);
                 glyphs[c] = glyph;
             }
             catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IndexOutOfRangeException)
