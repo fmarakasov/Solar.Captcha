@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/Solar.Captcha.SampleApp/bin/Debug/net8.0/Solar.Captcha.SampleApp.dll",
+            "program": "${workspaceFolder}/src/Solar.Captcha.SampleApp/bin/Debug/net11.0/Solar.Captcha.SampleApp.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/Solar.Captcha.SampleApp",
             "stopAtEntry": false,

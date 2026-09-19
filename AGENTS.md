@@ -11,8 +11,8 @@ This repository contains `Solar.Captcha`, an ASP.NET Core captcha library, plus 
 
 ## Target Frameworks and Commands
 
-- The library targets `net8.0;net10.0`; do not use APIs unavailable to either target.
-- The sample app and test project target `net10.0`.
+- The library targets `net11.0`; do not use APIs unavailable to either target.
+- The sample app and test project target `net11.0`.
 - Prefer validating library changes with:
   - `dotnet build src/Solar.Captcha.slnx`
   - `dotnet test src/Solar.Captcha.Tests/Solar.Captcha.Tests.csproj`
