@@ -798,39 +798,27 @@ internal sealed class TrueTypeFont
     private readonly record struct TableRecord(string Tag, uint Checksum, uint Offset, uint Length);
 }
 
+
 /// <summary>
 /// A decoded (possibly composite) glyph outline in font units.
 /// </summary>
-internal sealed class GlyphOutline
+/// <param name="XMin"></param>
+/// <param name="YMin"></param>
+/// <param name="XMax"></param>
+/// <param name="YMax"></param>
+/// <param name="EndPoints"></param>
+/// <param name="Xs"></param>
+/// <param name="Ys"></param>
+/// <param name="OnCurve"></param>
+internal sealed record GlyphOutline(
+    short XMin,
+    short YMin, 
+    short XMax, 
+    short YMax, 
+    int[] EndPoints, 
+    int[] Xs, 
+    int[] Ys, 
+    bool[] OnCurve)
 {
-    public GlyphOutline(
-        short xMin,
-        short yMin,
-        short xMax,
-        short yMax,
-        int[] endPoints,
-        int[] xs,
-        int[] ys,
-        bool[] onCurve)
-    {
-        XMin = xMin;
-        YMin = yMin;
-        XMax = xMax;
-        YMax = yMax;
-        EndPoints = endPoints;
-        Xs = xs;
-        Ys = ys;
-        OnCurve = onCurve;
-    }
-
-    public short XMin { get; }
-    public short YMin { get; }
-    public short XMax { get; }
-    public short YMax { get; }
-    public int[] EndPoints { get; }
-    public int[] Xs { get; }
-    public int[] Ys { get; }
-    public bool[] OnCurve { get; }
-
     public int PointCount => Xs.Length;
 }
