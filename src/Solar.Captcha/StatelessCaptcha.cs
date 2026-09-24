@@ -13,26 +13,24 @@ public class StatelessCaptchaOptions
     public TimeSpan TokenExpiration { get; set; } = TimeSpan.FromMinutes(5);
 }
 
-public abstract class StatelessCaptcha(IDataProtectionProvider dataProtectionProvider, StatelessCaptchaOptions options) : IStatelessCaptcha
+public abstract class StatelessCaptcha(
+    IDataProtectionProvider dataProtectionProvider,
+    ICaptchaImageRenderer imageRenderer,
+    StatelessCaptchaOptions options) : IStatelessCaptcha
 {
     private const int MaxBlockedCodeRetries = 100;
 
     private readonly IDataProtector _dataProtector = dataProtectionProvider.CreateProtector("Solar.Captcha.Stateless");
+    private readonly ICaptchaImageRenderer _imageRenderer =
+        imageRenderer ?? throw new ArgumentNullException(nameof(imageRenderer));
 
     public abstract string GenerateCaptchaCode();
 
     public StatelessCaptchaResult GenerateCaptcha(int width = 100, int height = 36)
     {
-        var captchaCode = GenerateCaptchaCode();
-        var retries = 0;
-        while (options.BlockedCodes.Contains(captchaCode))
-        {
-            if (++retries > MaxBlockedCodeRetries)
-                throw new InvalidOperationException($"Unable to generate a captcha code not in BlockedCodes after {MaxBlockedCodeRetries} attempts.");
-            captchaCode = GenerateCaptchaCode();
-        }
+        var captchaCode = GenerateAllowedCaptchaCode();
 
-        var result = CaptchaImageGenerator.GetImage(width, height, captchaCode, options.FontStyle, options.DrawLines);
+        var imageBytes = _imageRenderer.Render(width, height, captchaCode, options.FontStyle, options.DrawLines);
 
         var tokenData = new CaptchaTokenData
         {
@@ -45,9 +43,33 @@ public abstract class StatelessCaptcha(IDataProtectionProvider dataProtectionPro
 
         return new StatelessCaptchaResult
         {
-            ImageBytes = result.CaptchaByteData,
+            ImageBytes = imageBytes,
             Token = encryptedToken
         };
+    }
+
+    /// <summary>
+    /// Generates a code that is not in <see cref="StatelessCaptchaOptions.BlockedCodes"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when an allowed code could not be produced within the retry budget, which means the
+    /// configured letters cannot produce a code outside <see cref="StatelessCaptchaOptions.BlockedCodes"/>.
+    /// </exception>
+    private string GenerateAllowedCaptchaCode()
+    {
+        var captchaCode = GenerateCaptchaCode();
+        var retries = 0;
+        while (options.BlockedCodes.Contains(captchaCode))
+        {
+            if (++retries > MaxBlockedCodeRetries)
+            {
+                throw new InvalidOperationException($"Unable to generate a captcha code not in BlockedCodes after {MaxBlockedCodeRetries} attempts.");
+            }
+
+            captchaCode = GenerateCaptchaCode();
+        }
+
+        return captchaCode;
     }
 
     public bool Validate(string userInputCaptcha, string captchaToken, bool ignoreCase = true)

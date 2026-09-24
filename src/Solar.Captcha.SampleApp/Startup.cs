@@ -23,6 +23,16 @@ public class Startup(IConfiguration configuration)
 
         services.AddMvc();
 
+        // Glyph rendering is explicit: pick one source, then declare every character the
+        // application will draw. The set is built while the host starts, so a charset that cannot
+        // be drawn stops the application instead of failing on the first captcha request.
+        services.AddStaticGlyphSource();
+        //services.AddFontGlyphSource(options => options.FontPath = "Fonts/arial.ttf");
+
+        // Must cover the Letters of every captcha flow registered below: the session-based flow
+        // adds E, F, L and T to the default set, so the union is declared here.
+        services.AddGlyphSet(options => options.Charset = "2346789ABCDEFGHJKLMNPRTUVWXYZ");
+
         var magic1 = Convert.ToBase64String(SHA256.HashData(BitConverter.GetBytes(0x7DB14)))[21..25];
         var magic2 = Convert.ToBase64String(SHA256.HashData(BitConverter.GetBytes(0x78E10)))[13..17];
 

@@ -9,6 +9,17 @@ Generate and validate Captcha images in ASP.NET Core. Based on [Edi.Captcha.AspN
 [main-nuget]: https://www.nuget.org/packages/Solar.Captcha/
 [main-nuget-badge]: https://img.shields.io/nuget/v/Solar.Captcha.svg?style=flat-square&label=nuget
 
+## Key Differences from Edi.Captcha.AspNetCore
+
+While this library was originally forked from `Edi.Captcha.AspNetCore`, it has been heavily refactored to prioritize **DI friendliness**, **security**, and **fail-fast architecture**:
+
+- **No Static Entry Points or Global State**: `CaptchaImageGenerator` (static) has been replaced by `ICaptchaImageRenderer` (resolved from DI as a singleton). All captcha flow services (`SessionBasedCaptcha`, `StatelessCaptcha`) now construct and resolve their dependencies cleanly.
+- **Fail-Fast Start-Up Validation**: Glyph lookup is no longer deferred to the per-request render pipeline. Instead, a complete, immutable **`GlyphSet`** is materialised once at host start-up (via `ValidateOnStart()`). Any unresolved character, invalid font path, or mismatch between what a captcha flow generates and what the renderer can draw causes a **hard start-up failure** before your application can serve its first request, rather than throwing errors or rendering unreadable placeholders in front of your users.
+- **No Implicit Placeholder Fallbacks**: The old silent fallback to a generic rectangle for unknown characters has been removed. Fallback is now an explicit, build-time registration choice (`GlyphSetOptions.FallbackGlyph`).
+- **Injectable Random Source**: To support deterministic unit testing and ensure thread safety, the image renderer takes a `System.Random` instance (defaulting to `Random.Shared`), completely removing the process-wide shared static dependencies.
+
+---
+
 ## Install
 
 NuGet Package Manager
@@ -21,6 +32,22 @@ or .NET CLI
 ```
 dotnet add package Solar.Captcha
 ```
+
+## Glyph Rendering Setup (required)
+
+Every captcha flow below draws through a shared image renderer, and that renderer has to be told what it's allowed to draw. Register **one** glyph source and **one** glyph set before registering any captcha flow:
+
+```csharp
+// Pick one source:
+services.AddStaticGlyphSource();                                   // hand-authored bitmaps, digits + uppercase A-Z
+// services.AddFontGlyphSource(o => o.FontPath = "Fonts/arial.ttf"); // any TrueType/OpenType font
+
+// Declare every character your captcha flows will generate. Must cover the `Letters`
+// of every AddSessionBasedCaptcha / AddStatelessCaptcha / AddSharedKeyStatelessCaptcha call below.
+services.AddGlyphSet(options => options.Charset = "2346789ABCDEFGHJKLMNPRTUVWXYZ");
+```
+
+The glyph set is built once, while the host starts. If a character can't be resolved — a typo in the font path, a charset the font doesn't cover — the application **fails to start** with a clear error, instead of failing on the first captcha request. There is no default source and no default charset.
 
 ## Session-Based Captcha (Traditional Approach)
 

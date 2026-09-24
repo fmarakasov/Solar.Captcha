@@ -84,10 +84,12 @@ internal sealed class CaptchaImage : IDisposable
         }
     }
 
-    public void DrawCharacter(char c, int destX, int destY, int scale, byte r, byte g, byte b,
+    /// <summary>
+    /// Draws a glyph bitmap at a position, scaled, styled and rotated.
+    /// </summary>
+    public void DrawGlyph(byte[] glyph, int destX, int destY, int scale, byte r, byte g, byte b,
         CaptchaFontStyle fontStyle, float rotationDegrees)
     {
-        var glyph = CaptchaFont.GetGlyph(c);
         var scaledW = CaptchaFont.GlyphWidth * scale;
         var scaledH = CaptchaFont.GlyphHeight * scale;
         var cx = scaledW / 2f;
@@ -145,7 +147,10 @@ internal sealed class CaptchaImage : IDisposable
         }
     }
 
-    public int MeasureCharWidth(char c, int scale, CaptchaFontStyle fontStyle)
+    /// <summary>
+    /// Measures the horizontal space a glyph occupies at a given scale and style.
+    /// </summary>
+    public int MeasureCharWidth(int scale, CaptchaFontStyle fontStyle)
     {
         var width = CaptchaFont.GlyphWidth * scale;
         if (fontStyle == CaptchaFontStyle.Bold)
@@ -154,11 +159,11 @@ internal sealed class CaptchaImage : IDisposable
         }
 
         // Account for italic shear: horizontal offset proportional to glyph height.
-        // This mirrors the shear used in DrawCharacter (srcX -= srcY * shear).
+        // This mirrors the shear used in DrawGlyph (srcX -= srcY * shear).
         float shear = 0f;
         if (fontStyle == CaptchaFontStyle.Italic)
         {
-            // Use the same shear factor as in DrawCharacter for italic rendering.
+            // Use the same shear factor as in DrawGlyph for italic rendering.
             shear = 0.3f;
         }
 

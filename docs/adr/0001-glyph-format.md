@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The existing `CaptchaFont.Glyphs` dictionary stores each character as a 14-byte array representing an 8×14 bitmap. Each byte is one row of 8 bits (MSB = leftmost pixel). This format is consumed by `CaptchaImageGenerator` and `CaptchaImage` without transformation.
+The existing `CaptchaFont.Glyphs` dictionary stores each character as a 14-byte array representing an 8×14 bitmap. Each byte is one row of 8 bits (MSB = leftmost pixel). This format is consumed by `CaptchaImageRenderer` and `CaptchaImage` without transformation.
 
 ## Decision
 

@@ -48,15 +48,15 @@ internal static class CaptchaFont
         ['Z'] = [0x00, 0xFE, 0xC6, 0x0C, 0x18, 0x30, 0x60, 0xC0, 0xC2, 0xC6, 0xFE, 0x00, 0x00, 0x00],
     };
 
-    // Fallback glyph: filled rectangle for unknown characters
-    private static readonly byte[] FallbackGlyph =
-        [0x00, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0x00, 0x00, 0x00];
-
-    public static byte[] GetGlyph(char c)
-    {
-        c = char.ToUpperInvariant(c);
-        return Glyphs.GetValueOrDefault(c, FallbackGlyph);
-    }
+    /// <summary>
+    /// Gets the glyph authored for a character. Characters with no authored glyph are reported
+    /// as missing rather than substituted, so that the static glyph path behaves exactly like the
+    /// font-based renderer under start-up validation (ADR-008).
+    /// </summary>
+    /// <param name="c">The character to look up. Lookup is case-insensitive.</param>
+    /// <param name="glyph">The glyph, when one was authored for the character.</param>
+    /// <returns><see langword="true"/> when the character has a hand-authored glyph.</returns>
+    public static bool TryGetGlyph(char c, out byte[] glyph) => Glyphs.TryGetValue(char.ToUpperInvariant(c), out glyph);
 
     public static bool IsPixelSet(byte[] glyph, int x, int y)
     {

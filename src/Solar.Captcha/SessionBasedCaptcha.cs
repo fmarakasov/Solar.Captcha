@@ -14,11 +14,16 @@ public class SessionBasedCaptchaOptions
     public string[] BlockedCodes { get; set; } = [];
 }
 
-public abstract class SessionBasedCaptcha : ISessionBasedCaptcha
+public abstract class SessionBasedCaptcha(
+    ICaptchaImageRenderer imageRenderer,
+    SessionBasedCaptchaOptions options) : ISessionBasedCaptcha
 {
     private const int MaxBlockedCodeRetries = 100;
 
-    public SessionBasedCaptchaOptions Options { get; set; }
+    private readonly ICaptchaImageRenderer _imageRenderer =
+        imageRenderer ?? throw new ArgumentNullException(nameof(imageRenderer));
+
+    public SessionBasedCaptchaOptions Options { get; } = options ?? throw new ArgumentNullException(nameof(options));
 
     public abstract string GenerateCaptchaCode();
 
@@ -26,36 +31,46 @@ public abstract class SessionBasedCaptcha : ISessionBasedCaptcha
     {
         EnsureHttpSession(httpSession);
 
+        var captchaCode = GenerateAllowedCaptchaCode();
+
+        var imageBytes = _imageRenderer.Render(width, height, captchaCode, Options.FontStyle, Options.DrawLines);
+        httpSession.SetString(sessionKeyName ?? Options.SessionName, captchaCode);
+        return imageBytes;
+    }
+
+    /// <summary>
+    /// Generates a code that is not in <see cref="SessionBasedCaptchaOptions.BlockedCodes"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when an allowed code could not be produced within the retry budget, which means the
+    /// configured letters cannot produce a code outside <see cref="SessionBasedCaptchaOptions.BlockedCodes"/>.
+    /// </exception>
+    private string GenerateAllowedCaptchaCode()
+    {
         var captchaCode = GenerateCaptchaCode();
         var retries = 0;
         while (Options.BlockedCodes.Contains(captchaCode))
         {
             if (++retries > MaxBlockedCodeRetries)
+            {
                 throw new InvalidOperationException($"Unable to generate a captcha code not in BlockedCodes after {MaxBlockedCodeRetries} attempts.");
+            }
+
             captchaCode = GenerateCaptchaCode();
         }
 
-        var result = CaptchaImageGenerator.GetImage(width, height, captchaCode, Options.FontStyle, Options.DrawLines);
-        httpSession.SetString(sessionKeyName ?? Options.SessionName, result.CaptchaCode);
-        return result.CaptchaByteData;
+        return captchaCode;
     }
 
     public FileStreamResult GenerateCaptchaImageFileStream(ISession httpSession, int width = 100, int height = 36, string sessionKeyName = null)
     {
         EnsureHttpSession(httpSession);
 
-        var captchaCode = GenerateCaptchaCode();
-        var retries = 0;
-        while (Options.BlockedCodes.Contains(captchaCode))
-        {
-            if (++retries > MaxBlockedCodeRetries)
-                throw new InvalidOperationException($"Unable to generate a captcha code not in BlockedCodes after {MaxBlockedCodeRetries} attempts.");
-            captchaCode = GenerateCaptchaCode();
-        }
+        var captchaCode = GenerateAllowedCaptchaCode();
 
-        var result = CaptchaImageGenerator.GetImage(width, height, captchaCode, Options.FontStyle, Options.DrawLines);
-        httpSession.SetString(sessionKeyName ?? Options.SessionName, result.CaptchaCode);
-        Stream s = new MemoryStream(result.CaptchaByteData);
+        var imageBytes = _imageRenderer.Render(width, height, captchaCode, Options.FontStyle, Options.DrawLines);
+        httpSession.SetString(sessionKeyName ?? Options.SessionName, captchaCode);
+        Stream s = new MemoryStream(imageBytes);
         return new(s, "image/png");
     }
 
