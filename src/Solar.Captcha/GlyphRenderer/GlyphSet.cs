@@ -84,7 +84,7 @@ public sealed class GlyphSet
     /// <param name="character">The character to look up.</param>
     /// <param name="glyph">The glyph, when found.</param>
     /// <returns><see langword="true"/> when the character is in this set.</returns>
-    public bool TryGetGlyph(char character, out byte[] glyph) =>
+    public bool TryGetGlyph(char character, out byte[]? glyph) =>
         _glyphs.TryGetValue(char.ToUpperInvariant(character), out glyph);
 
     /// <summary>

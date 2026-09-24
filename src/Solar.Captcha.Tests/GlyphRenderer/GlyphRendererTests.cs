@@ -50,6 +50,43 @@ public class GlyphRendererTests
     }
 
     [Test]
+    public void GlyphRenderOptions_Validate_WithStreamFactoryOnly_DoesNotThrow()
+    {
+        // Arrange: a stream source needs no file on disk, so validation must not require one.
+        var options = new GlyphRenderOptions
+        {
+            FontStreamFactory = () => new MemoryStream([0x00, 0x01])
+        };
+
+        // Act & Assert
+        Assert.DoesNotThrow(() => options.Validate());
+    }
+
+    [Test]
+    public void GlyphRenderOptions_Validate_WithBothFontPathAndStreamFactory_ThrowsArgumentException()
+    {
+        // Arrange: two sources would make the font depend on precedence order.
+        var options = new GlyphRenderOptions
+        {
+            FontPath = _testFontPath,
+            FontStreamFactory = () => new MemoryStream([0x00, 0x01])
+        };
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => options.Validate());
+    }
+
+    [Test]
+    public void GlyphRenderOptions_Validate_WithNeitherFontSource_ThrowsArgumentException()
+    {
+        // Arrange
+        var options = new GlyphRenderOptions();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => options.Validate());
+    }
+
+    [Test]
     public void GlyphRenderer_Constructor_WithValidFont_CreatesInstance()
     {
         // Arrange
@@ -182,6 +219,83 @@ public class GlyphRendererTests
     }
 
     [Test]
+    public void TrueTypeFont_Load_FromStream_ReturnsSameFontAsFromFile()
+    {
+        // Arrange
+        var fromFile = TrueTypeFont.Load(_testFontPath);
+
+        // Act
+        using var stream = File.OpenRead(_testFontPath);
+        var fromStream = TrueTypeFont.Load(stream, "stream");
+
+        // Assert: the stream overload must not be a second, weaker parser.
+        Assert.That(fromStream.UnitsPerEm, Is.EqualTo(fromFile.UnitsPerEm));
+        Assert.That(fromStream.NumGlyphs, Is.EqualTo(fromFile.NumGlyphs));
+        Assert.That(fromStream.FamilyName, Is.EqualTo(fromFile.FamilyName));
+        Assert.That(fromStream.GetGlyphIndex('A'), Is.EqualTo(fromFile.GetGlyphIndex('A')));
+    }
+
+    [Test]
+    public void TrueTypeFont_Load_FromStream_DoesNotDisposeTheCallerStream()
+    {
+        // Arrange: the caller owns the stream it hands over.
+        using var stream = File.OpenRead(_testFontPath);
+
+        // Act
+        TrueTypeFont.Load(stream, "stream");
+
+        // Assert
+        Assert.DoesNotThrow(() => stream.ReadByte());
+    }
+
+    [Test]
+    public void GlyphRenderer_Constructor_WithStreamFactory_RendersIdenticalGlyphsToFileSource()
+    {
+        // Arrange
+        var fileOptions = new GlyphRenderOptions { FontPath = _testFontPath };
+        var streamOptions = new GlyphRenderOptions
+        {
+            FontStreamFactory = () => File.OpenRead(_testFontPath)
+        };
+
+        // Act
+        var fromFile = new Solar.Captcha.GlyphRenderer.GlyphRenderer(fileOptions).Render("A9");
+        var fromStream = new Solar.Captcha.GlyphRenderer.GlyphRenderer(streamOptions).Render("A9");
+
+        // Assert
+        Assert.That(fromStream.Glyphs.Keys, Is.EquivalentTo(fromFile.Glyphs.Keys));
+        foreach (var (character, glyph) in fromFile.Glyphs)
+        {
+            Assert.That(fromStream.Glyphs[character], Is.EqualTo(glyph), $"glyph for '{character}'");
+        }
+    }
+
+    [Test]
+    public void GlyphRenderer_Constructor_WithStreamFactoryReturningNull_ThrowsGlyphRendererException()
+    {
+        // Arrange
+        var options = new GlyphRenderOptions { FontStreamFactory = () => null! };
+
+        // Act & Assert
+        Assert.Throws<Solar.Captcha.GlyphRenderer.GlyphRendererException>(
+            () => new Solar.Captcha.GlyphRenderer.GlyphRenderer(options));
+    }
+
+    [Test]
+    public void GlyphRenderer_Constructor_WithStreamFactoryReturningNonFont_ThrowsGlyphRendererException()
+    {
+        // Arrange
+        var options = new GlyphRenderOptions
+        {
+            FontStreamFactory = () => new MemoryStream([0x00, 0x01, 0x02])
+        };
+
+        // Act & Assert
+        Assert.Throws<Solar.Captcha.GlyphRenderer.GlyphRendererException>(
+            () => new Solar.Captcha.GlyphRenderer.GlyphRenderer(options));
+    }
+
+    [Test]
     public void TrueTypeFont_GetGlyphIndex_WithValidChar_ReturnsIndex()
     {
         // Arrange
@@ -206,7 +320,7 @@ public class GlyphRendererTests
 
         // Assert
         Assert.That(outline, Is.Not.Null);
-        Assert.That(outline.PointCount, Is.GreaterThan(0));
+        Assert.That(outline!.PointCount, Is.GreaterThan(0));
     }
 
     [Test]
@@ -262,11 +376,11 @@ public class GlyphRendererTests
             "'A' should have a hand-authored glyph");
 
         // Act
-        var lines = GlyphAsciiArt.ToAsciiArt(glyph).Split('\n');
+        var lines = GlyphAsciiArt.ToAsciiArt(glyph!).Split('\n');
 
         // Assert: the pseudographics agree with the pixel accessor used by the image pipeline,
         // so what a reviewer sees is what CaptchaImage draws.
-        for (int y = 0; y < glyph.Length; y++)
+        for (int y = 0; y < glyph!.Length; y++)
         {
             for (int x = 0; x < GlyphAsciiArt.Columns; x++)
             {
@@ -357,7 +471,7 @@ public class GlyphRendererTests
 
         // Assert
         Assert.That(outline, Is.Not.Null, $"'{character}' should have an outline");
-        Assert.That(outline.PointCount, Is.GreaterThan(0), $"'{character}' should have points");
+        Assert.That(outline!.PointCount, Is.GreaterThan(0), $"'{character}' should have points");
 
         int minX = int.MaxValue, maxX = int.MinValue, minY = int.MaxValue, maxY = int.MinValue;
         for (int i = 0; i < outline.PointCount; i++)

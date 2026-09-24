@@ -72,7 +72,7 @@ public abstract class StatelessCaptcha(
         return captchaCode;
     }
 
-    public bool Validate(string userInputCaptcha, string captchaToken, bool ignoreCase = true)
+    public bool Validate(string? userInputCaptcha, string? captchaToken, bool ignoreCase = true)
     {
         if (string.IsNullOrWhiteSpace(userInputCaptcha) || string.IsNullOrWhiteSpace(captchaToken))
         {
@@ -84,7 +84,7 @@ public abstract class StatelessCaptcha(
             var decryptedData = _dataProtector.Unprotect(captchaToken);
             var tokenData = JsonSerializer.Deserialize<CaptchaTokenData>(decryptedData);
 
-            if (DateTimeOffset.UtcNow > tokenData.ExpirationTime)
+            if (tokenData is null || DateTimeOffset.UtcNow > tokenData.ExpirationTime)
             {
                 return false; // Token expired
             }
@@ -101,6 +101,6 @@ public abstract class StatelessCaptcha(
 
 public class CaptchaTokenData
 {
-    public string Code { get; set; }
+    public string Code { get; set; } = string.Empty;
     public DateTimeOffset ExpirationTime { get; set; }
 }

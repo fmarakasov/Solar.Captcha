@@ -9,11 +9,11 @@ namespace Solar.Captcha.Tests;
 [TestFixture]
 public class StatelessLetterCaptchaTests
 {
-    private Mock<IDataProtectionProvider> _mockDataProtectionProvider;
-    private Mock<IDataProtector> _mockDataProtector;
-    private Mock<ICaptchaImageRenderer> _mockImageRenderer;
-    private StatelessLetterCaptchaOptions _defaultOptions;
-    private StatelessLetterCaptcha _captcha;
+    private Mock<IDataProtectionProvider> _mockDataProtectionProvider = null!;
+    private Mock<IDataProtector> _mockDataProtector = null!;
+    private Mock<ICaptchaImageRenderer> _mockImageRenderer = null!;
+    private StatelessLetterCaptchaOptions _defaultOptions = null!;
+    private StatelessLetterCaptcha _captcha = null!;
 
     [SetUp]
     public void SetUp()
@@ -166,7 +166,7 @@ public class StatelessLetterCaptchaTests
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => invalidCaptcha.GenerateCaptchaCode());
-        Assert.That(ex.ParamName?.ToLower(), Does.Contain("codelength"));
+        Assert.That(ex!.ParamName?.ToLower(), Does.Contain("codelength"));
         Assert.That(ex.Message, Does.Contain("codeLength must range within 1-32"));
     }
 
@@ -183,7 +183,7 @@ public class StatelessLetterCaptchaTests
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => invalidCaptcha.GenerateCaptchaCode());
-        Assert.That(ex.ParamName?.ToLower(), Does.Contain("codelength"));
+        Assert.That(ex!.ParamName?.ToLower(), Does.Contain("codelength"));
         Assert.That(ex.Message, Does.Contain("current value is -1"));
     }
 
@@ -200,7 +200,7 @@ public class StatelessLetterCaptchaTests
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => invalidCaptcha.GenerateCaptchaCode());
-        Assert.That(ex.ParamName?.ToLower(), Does.Contain("codelength"));
+        Assert.That(ex!.ParamName?.ToLower(), Does.Contain("codelength"));
         Assert.That(ex.Message, Does.Contain("current value is 33"));
     }
 

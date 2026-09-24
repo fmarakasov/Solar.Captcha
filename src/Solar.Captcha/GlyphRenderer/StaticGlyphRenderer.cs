@@ -34,7 +34,7 @@ internal sealed class StaticGlyphRenderer : IGlyphRenderer
             }
 
             var normalized = char.ToUpperInvariant(character);
-            if (CaptchaFont.TryGetGlyph(normalized, out var glyph))
+            if (CaptchaFont.TryGetGlyph(normalized, out var glyph) && glyph is not null)
             {
                 glyphs[normalized] = glyph;
             }

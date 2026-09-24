@@ -12,7 +12,7 @@ public class SharedKeyStatelessCaptchaOptions
     public bool DrawLines { get; set; } = true;
     public string[] BlockedCodes { get; set; } = [];
     public TimeSpan TokenExpiration { get; set; } = TimeSpan.FromMinutes(5);
-    public string SharedKey { get; set; } // Base64 encoded 256-bit key
+    public string SharedKey { get; set; } = string.Empty; // Base64 encoded 256-bit key
 }
 
 public abstract class SharedKeyStatelessCaptcha : IStatelessCaptcha
@@ -95,7 +95,7 @@ public abstract class SharedKeyStatelessCaptcha : IStatelessCaptcha
         return captchaCode;
     }
 
-    public bool Validate(string userInputCaptcha, string captchaToken, bool ignoreCase = true)
+    public bool Validate(string? userInputCaptcha, string? captchaToken, bool ignoreCase = true)
     {
         if (string.IsNullOrWhiteSpace(userInputCaptcha) || string.IsNullOrWhiteSpace(captchaToken))
         {
@@ -107,7 +107,7 @@ public abstract class SharedKeyStatelessCaptcha : IStatelessCaptcha
             var decryptedData = DecryptData(captchaToken);
             var tokenData = JsonSerializer.Deserialize<CaptchaTokenData>(decryptedData);
 
-            if (DateTimeOffset.UtcNow > tokenData.ExpirationTime)
+            if (tokenData is null || DateTimeOffset.UtcNow > tokenData.ExpirationTime)
             {
                 return false; // Token expired
             }

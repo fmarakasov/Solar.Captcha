@@ -2,10 +2,10 @@
 
 public interface ICaptchable
 {
-    string CaptchaCode { get; set; }
+    string? CaptchaCode { get; set; }
 }
 
 public interface ICaptchableWithToken : ICaptchable
 {
-    string CaptchaToken { get; set; }
+    string? CaptchaToken { get; set; }
 }

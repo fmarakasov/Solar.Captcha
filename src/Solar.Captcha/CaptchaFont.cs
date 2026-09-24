@@ -56,7 +56,7 @@ internal static class CaptchaFont
     /// <param name="c">The character to look up. Lookup is case-insensitive.</param>
     /// <param name="glyph">The glyph, when one was authored for the character.</param>
     /// <returns><see langword="true"/> when the character has a hand-authored glyph.</returns>
-    public static bool TryGetGlyph(char c, out byte[] glyph) => Glyphs.TryGetValue(char.ToUpperInvariant(c), out glyph);
+    public static bool TryGetGlyph(char c, out byte[]? glyph) => Glyphs.TryGetValue(char.ToUpperInvariant(c), out glyph);
 
     public static bool IsPixelSet(byte[] glyph, int x, int y)
     {

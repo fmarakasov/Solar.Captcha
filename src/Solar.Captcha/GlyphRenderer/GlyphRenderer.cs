@@ -16,7 +16,7 @@ internal sealed class GlyphRenderer : IGlyphRenderer
     /// <summary>
     /// Creates a renderer from pre-validated options.
     /// </summary>
-    /// <param name="options">Pre-validated options containing the font path.</param>
+    /// <param name="options">Pre-validated options containing the font source (path or stream factory).</param>
     /// <exception cref="GlyphRendererException">Thrown if the font cannot be loaded.</exception>
     public GlyphRenderer(GlyphRenderOptions options)
     {
@@ -24,7 +24,7 @@ internal sealed class GlyphRenderer : IGlyphRenderer
 
         try
         {
-            _font = TrueTypeFont.Load(options.FontPath);
+            _font = LoadFont(options);
         }
         catch (Exception ex) when (ex is GlyphRendererException)
         {
@@ -32,9 +32,24 @@ internal sealed class GlyphRenderer : IGlyphRenderer
         }
         catch (Exception ex)
         {
-            throw new GlyphRendererException($"Failed to load font from '{options.FontPath}'.", ex);
+            throw new GlyphRendererException($"Failed to load font from {DescribeSource(options)}.", ex);
         }
     }
+
+    private static TrueTypeFont LoadFont(GlyphRenderOptions options)
+    {
+        if (options.FontStreamFactory is { } streamFactory)
+        {
+            // The factory creates the stream; the renderer owns and disposes it.
+            using var stream = streamFactory();
+            return TrueTypeFont.Load(stream, "stream");
+        }
+
+        return TrueTypeFont.Load(options.FontPath);
+    }
+
+    private static string DescribeSource(GlyphRenderOptions options) =>
+        options.FontStreamFactory is not null ? "the configured stream" : $"'{options.FontPath}'";
 
     /// <inheritdoc />
     public GlyphRenderResult Render(string characters)

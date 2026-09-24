@@ -153,7 +153,7 @@ public class GlyphSetTests
         }));
 
         // Assert
-        Assert.That(ex.Message, Does.Contain("'B'"));
+        Assert.That(ex!.Message, Does.Contain("'B'"));
         Assert.That(ex.Message, Does.Contain("'C'"));
         Assert.That(ex.Message, Does.Contain("FallbackGlyph"));
     }
@@ -165,7 +165,7 @@ public class GlyphSetTests
         var ex = Assert.Throws<ArgumentException>(() =>
             new GlyphSet(string.Empty, new Dictionary<char, byte[]>()));
 
-        Assert.That(ex.ParamName, Is.EqualTo("charset"));
+        Assert.That(ex!.ParamName, Is.EqualTo("charset"));
     }
 
     #endregion
@@ -183,7 +183,7 @@ public class GlyphSetTests
             factory.Get(new GlyphSetOptions { Charset = "AB!" }));
 
         // Assert
-        Assert.That(ex.Message, Does.Contain("'!'"));
+        Assert.That(ex!.Message, Does.Contain("'!'"));
     }
 
     [Test]
@@ -258,7 +258,7 @@ public class GlyphSetTests
         // Act & Assert
         var ex = Assert.Throws<ArgumentException>(() => new GlyphSetOptions { Charset = "" }.Validate());
 
-        Assert.That(ex.ParamName, Is.EqualTo("Charset"));
+        Assert.That(ex!.ParamName, Is.EqualTo("Charset"));
     }
 
     [Test]
@@ -268,7 +268,7 @@ public class GlyphSetTests
         var ex = Assert.Throws<ArgumentException>(() =>
             new GlyphSetOptions { Charset = "A\uD83D\uDE00" }.Validate());
 
-        Assert.That(ex.ParamName, Is.EqualTo("Charset"));
+        Assert.That(ex!.ParamName, Is.EqualTo("Charset"));
         Assert.That(ex.Message, Does.Contain("non-BMP"));
     }
 
@@ -279,7 +279,7 @@ public class GlyphSetTests
         var ex = Assert.Throws<ArgumentException>(() =>
             new GlyphSetOptions { Charset = "A", FallbackGlyph = new byte[3] }.Validate());
 
-        Assert.That(ex.ParamName, Is.EqualTo("FallbackGlyph"));
+        Assert.That(ex!.ParamName, Is.EqualTo("FallbackGlyph"));
     }
 
     #endregion

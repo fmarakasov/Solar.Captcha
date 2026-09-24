@@ -5,6 +5,7 @@
     <Company>edi.wang, SolarLab</Company>
     <Copyright>(c) 2026 edi.wang, (c) 2026 SolarLab</Copyright>
     <TargetFrameworks>net11.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/fmarakasov/Solar.Captcha</PackageProjectUrl>
     <RepositoryUrl>https://github.com/fmarakasov/Solar.Captcha</RepositoryUrl>

@@ -40,12 +40,15 @@ Every captcha flow below draws through a shared image renderer, and that rendere
 ```csharp
 // Pick one source:
 services.AddStaticGlyphSource();                                   // hand-authored bitmaps, digits + uppercase A-Z
-// services.AddFontGlyphSource(o => o.FontPath = "Fonts/arial.ttf"); // any TrueType/OpenType font
+// services.AddFontGlyphSource(o => o.FontPath = "Fonts/arial.ttf");             // any TrueType/OpenType font file
+// services.AddFontGlyphSource(o => o.FontStreamFactory = OpenFontStream);       // any TrueType/OpenType font stream
 
 // Declare every character your captcha flows will generate. Must cover the `Letters`
 // of every AddSessionBasedCaptcha / AddStatelessCaptcha / AddSharedKeyStatelessCaptcha call below.
 services.AddGlyphSet(options => options.Charset = "2346789ABCDEFGHJKLMNPRTUVWXYZ");
 ```
+
+`AddFontGlyphSource` reads the font from either `FontPath` (a file on disk) or `FontStreamFactory` (a `Func<Stream>` returning a fresh, readable stream — for embedded resources, byte arrays, or remote fonts). Set exactly one of the two; setting both, or neither, throws at registration. The factory is invoked once, and the stream it returns is disposed by the library.
 
 The glyph set is built once, while the host starts. If a character can't be resolved — a typo in the font path, a charset the font doesn't cover — the application **fails to start** with a clear error, instead of failing on the first captcha request. There is no default source and no default charset.
 
