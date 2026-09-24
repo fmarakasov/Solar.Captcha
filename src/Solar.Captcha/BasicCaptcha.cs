@@ -7,16 +7,9 @@ public class BasicLetterCaptchaOptions : SessionBasedCaptchaOptions
     public int CodeLength { get; set; }
 }
 
-public class BasicLetterCaptcha : SessionBasedCaptcha
+public class BasicLetterCaptcha(ICaptchaImageRenderer imageRenderer, BasicLetterCaptchaOptions options)
+    : SessionBasedCaptcha(imageRenderer, options)
 {
-    private readonly BasicLetterCaptchaOptions _options;
-
-    public BasicLetterCaptcha(BasicLetterCaptchaOptions options)
-    {
-        Options = options;
-        _options = options;
-    }
-
     public override string GenerateCaptchaCode() =>
-        SecureCaptchaGenerator.GenerateSecureCaptchaCode(_options.Letters, _options.CodeLength);
+        SecureCaptchaGenerator.GenerateSecureCaptchaCode(options.Letters, options.CodeLength);
 }

@@ -10,7 +10,8 @@ public class StatelessLetterCaptchaOptions : StatelessCaptchaOptions
 
 public class StatelessLetterCaptcha(
     IDataProtectionProvider dataProtectionProvider,
-    StatelessLetterCaptchaOptions options) : StatelessCaptcha(dataProtectionProvider, options)
+    ICaptchaImageRenderer imageRenderer,
+    StatelessLetterCaptchaOptions options) : StatelessCaptcha(dataProtectionProvider, imageRenderer, options)
 {
     public override string GenerateCaptchaCode() =>
         SecureCaptchaGenerator.GenerateSecureCaptchaCode(options.Letters, options.CodeLength);

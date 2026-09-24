@@ -6,7 +6,8 @@ public class SharedKeyStatelessLetterCaptchaOptions : SharedKeyStatelessCaptchaO
     public int CodeLength { get; set; } = 4;
 }
 
-public class SharedKeyStatelessLetterCaptcha(SharedKeyStatelessLetterCaptchaOptions options) : SharedKeyStatelessCaptcha(options)
+public class SharedKeyStatelessLetterCaptcha(ICaptchaImageRenderer imageRenderer, SharedKeyStatelessLetterCaptchaOptions options)
+    : SharedKeyStatelessCaptcha(imageRenderer, options)
 {
     public override string GenerateCaptchaCode() =>
         SecureCaptchaGenerator.GenerateSecureCaptchaCode(options.Letters, options.CodeLength);

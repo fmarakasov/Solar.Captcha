@@ -11,6 +11,7 @@ public class StatelessLetterCaptchaTests
 {
     private Mock<IDataProtectionProvider> _mockDataProtectionProvider;
     private Mock<IDataProtector> _mockDataProtector;
+    private Mock<ICaptchaImageRenderer> _mockImageRenderer;
     private StatelessLetterCaptchaOptions _defaultOptions;
     private StatelessLetterCaptcha _captcha;
 
@@ -30,7 +31,9 @@ public class StatelessLetterCaptchaTests
             CodeLength = 4
         };
 
-        _captcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, _defaultOptions);
+        _mockImageRenderer = new Mock<ICaptchaImageRenderer>();
+
+        _captcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, _mockImageRenderer.Object, _defaultOptions);
     }
 
     [Test]
@@ -79,7 +82,7 @@ public class StatelessLetterCaptchaTests
             Letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
             CodeLength = 6
         };
-        var customCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, customOptions);
+        var customCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, _mockImageRenderer.Object, customOptions);
 
         // Act
         var result = customCaptcha.GenerateCaptchaCode();
@@ -98,7 +101,7 @@ public class StatelessLetterCaptchaTests
             Letters = "ABC123",
             CodeLength = 4
         };
-        var customCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, customOptions);
+        var customCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, _mockImageRenderer.Object, customOptions);
 
         // Act
         var result = customCaptcha.GenerateCaptchaCode();
@@ -121,7 +124,7 @@ public class StatelessLetterCaptchaTests
             Letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
             CodeLength = 1
         };
-        var minCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, minOptions);
+        var minCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, _mockImageRenderer.Object, minOptions);
 
         // Act
         var result = minCaptcha.GenerateCaptchaCode();
@@ -140,7 +143,7 @@ public class StatelessLetterCaptchaTests
             Letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
             CodeLength = 32
         };
-        var maxCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, maxOptions);
+        var maxCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, _mockImageRenderer.Object, maxOptions);
 
         // Act
         var result = maxCaptcha.GenerateCaptchaCode();
@@ -159,7 +162,7 @@ public class StatelessLetterCaptchaTests
             Letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
             CodeLength = 0
         };
-        var invalidCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, invalidOptions);
+        var invalidCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, _mockImageRenderer.Object, invalidOptions);
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => invalidCaptcha.GenerateCaptchaCode());
@@ -176,7 +179,7 @@ public class StatelessLetterCaptchaTests
             Letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
             CodeLength = -1
         };
-        var invalidCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, invalidOptions);
+        var invalidCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, _mockImageRenderer.Object, invalidOptions);
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => invalidCaptcha.GenerateCaptchaCode());
@@ -193,7 +196,7 @@ public class StatelessLetterCaptchaTests
             Letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
             CodeLength = 33
         };
-        var invalidCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, invalidOptions);
+        var invalidCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, _mockImageRenderer.Object, invalidOptions);
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => invalidCaptcha.GenerateCaptchaCode());
@@ -230,7 +233,7 @@ public class StatelessLetterCaptchaTests
             Letters = "X",
             CodeLength = 4
         };
-        var singleLetterCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, singleLetterOptions);
+        var singleLetterCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, _mockImageRenderer.Object, singleLetterOptions);
 
         // Act
         var result = singleLetterCaptcha.GenerateCaptchaCode();
@@ -259,7 +262,7 @@ public class StatelessLetterCaptchaTests
             Letters = "abcDEF123",  // Mixed case input
             CodeLength = 6
         };
-        var mixedCaseCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, mixedCaseOptions);
+        var mixedCaseCaptcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, _mockImageRenderer.Object, mixedCaseOptions);
 
         // Act
         var result = mixedCaseCaptcha.GenerateCaptchaCode();

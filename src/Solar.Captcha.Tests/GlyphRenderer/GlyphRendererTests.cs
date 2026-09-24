@@ -258,7 +258,8 @@ public class GlyphRendererTests
     {
         // Arrange
         const char character = 'A';
-        var glyph = CaptchaFont.GetGlyph(character);
+        Assert.That(CaptchaFont.TryGetGlyph(character, out var glyph), Is.True,
+            "'A' should have a hand-authored glyph");
 
         // Act
         var lines = GlyphAsciiArt.ToAsciiArt(glyph).Split('\n');

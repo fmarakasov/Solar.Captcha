@@ -22,6 +22,8 @@ The caller decides how to handle partial success:
 - Treat partial failure as an error condition.
 - Retry with a different font or fallback.
 
+The glyph set builder ([ADR-009](./0009-instance-renderer-and-glyph-set.md)) is the caller that matters in practice: it consumes `Failures` once, at start-up, substituting a configured `FallbackGlyph` where one exists and otherwise raising a `GlyphRendererException` that names every unresolved character.
+
 ## Consequences
 
 ### Positive

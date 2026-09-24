@@ -20,10 +20,12 @@ public abstract class SharedKeyStatelessCaptcha : IStatelessCaptcha
     private const int MaxBlockedCodeRetries = 100;
 
     private readonly byte[] _sharedKey;
+    private readonly ICaptchaImageRenderer _imageRenderer;
     private readonly SharedKeyStatelessCaptchaOptions _options;
 
-    protected SharedKeyStatelessCaptcha(SharedKeyStatelessCaptchaOptions options)
+    protected SharedKeyStatelessCaptcha(ICaptchaImageRenderer imageRenderer, SharedKeyStatelessCaptchaOptions options)
     {
+        _imageRenderer = imageRenderer ?? throw new ArgumentNullException(nameof(imageRenderer));
         _options = options ?? throw new ArgumentNullException(nameof(options));
 
         if (string.IsNullOrWhiteSpace(options.SharedKey))
@@ -49,16 +51,9 @@ public abstract class SharedKeyStatelessCaptcha : IStatelessCaptcha
 
     public StatelessCaptchaResult GenerateCaptcha(int width = 100, int height = 36)
     {
-        var captchaCode = GenerateCaptchaCode();
-        var retries = 0;
-        while (_options.BlockedCodes.Contains(captchaCode))
-        {
-            if (++retries > MaxBlockedCodeRetries)
-                throw new InvalidOperationException($"Unable to generate a captcha code not in BlockedCodes after {MaxBlockedCodeRetries} attempts.");
-            captchaCode = GenerateCaptchaCode();
-        }
+        var captchaCode = GenerateAllowedCaptchaCode();
 
-        var result = CaptchaImageGenerator.GetImage(width, height, captchaCode, _options.FontStyle, _options.DrawLines);
+        var imageBytes = _imageRenderer.Render(width, height, captchaCode, _options.FontStyle, _options.DrawLines);
 
         var tokenData = new CaptchaTokenData
         {
@@ -71,9 +66,33 @@ public abstract class SharedKeyStatelessCaptcha : IStatelessCaptcha
 
         return new StatelessCaptchaResult
         {
-            ImageBytes = result.CaptchaByteData,
+            ImageBytes = imageBytes,
             Token = encryptedToken
         };
+    }
+
+    /// <summary>
+    /// Generates a code that is not in <see cref="SharedKeyStatelessCaptchaOptions.BlockedCodes"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when an allowed code could not be produced within the retry budget, which means the
+    /// configured letters cannot produce a code outside <see cref="SharedKeyStatelessCaptchaOptions.BlockedCodes"/>.
+    /// </exception>
+    private string GenerateAllowedCaptchaCode()
+    {
+        var captchaCode = GenerateCaptchaCode();
+        var retries = 0;
+        while (_options.BlockedCodes.Contains(captchaCode))
+        {
+            if (++retries > MaxBlockedCodeRetries)
+            {
+                throw new InvalidOperationException($"Unable to generate a captcha code not in BlockedCodes after {MaxBlockedCodeRetries} attempts.");
+            }
+
+            captchaCode = GenerateCaptchaCode();
+        }
+
+        return captchaCode;
     }
 
     public bool Validate(string userInputCaptcha, string captchaToken, bool ignoreCase = true)
