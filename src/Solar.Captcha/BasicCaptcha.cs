@@ -2,7 +2,7 @@
 
 public class BasicLetterCaptchaOptions : SessionBasedCaptchaOptions
 {
-    public string Letters { get; set; }
+    public string Letters { get; set; } = string.Empty;
 
     public int CodeLength { get; set; }
 }

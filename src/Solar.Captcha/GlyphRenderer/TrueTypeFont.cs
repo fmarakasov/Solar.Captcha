@@ -58,14 +58,43 @@ internal sealed class TrueTypeFont
             throw new GlyphRendererException($"Unable to read font file '{fontPath}'.", ex);
         }
 
-        return Parse(data, fontPath);
+        return Parse(data, $"file '{fontPath}'");
     }
 
-    private static TrueTypeFont Parse(byte[] data, string fontPath)
+    /// <summary>
+    /// Loads and parses a TrueType/OpenType font from a stream.
+    /// </summary>
+    /// <param name="stream">A readable stream positioned at the start of the font data.</param>
+    /// <param name="sourceName">Short description of the source, used in error messages.</param>
+    /// <returns>The parsed font.</returns>
+    /// <remarks>
+    /// The stream is read to the end but not disposed; the caller owns its lifetime.
+    /// </remarks>
+    /// <exception cref="GlyphRendererException">When the stream cannot be read or is not a supported font.</exception>
+    public static TrueTypeFont Load(Stream stream, string sourceName)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+
+        byte[] data;
+        try
+        {
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            data = buffer.ToArray();
+        }
+        catch (Exception ex) when (ex is IOException or NotSupportedException or ObjectDisposedException)
+        {
+            throw new GlyphRendererException($"Unable to read font {sourceName}.", ex);
+        }
+
+        return Parse(data, sourceName);
+    }
+
+    private static TrueTypeFont Parse(byte[] data, string source)
     {
         if (data.Length < 12)
         {
-            throw new GlyphRendererException($"Font file '{fontPath}' is too small to be a valid font.");
+            throw new GlyphRendererException($"Font {source} is too small to be a valid font.");
         }
 
         uint sfntVersion = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(0, 4));
@@ -73,7 +102,7 @@ internal sealed class TrueTypeFont
         bool isCff = sfntVersion == 0x4F54544F; // 'OTTO' (CFF outlines — unsupported)
         if (!isTrueType && !isCff)
         {
-            throw new GlyphRendererException($"Font file '{fontPath}' is not a supported TrueType/OpenType font (unrecognized sfnt version 0x{sfntVersion:X8}).");
+            throw new GlyphRendererException($"Font {source} is not a supported TrueType/OpenType font (unrecognized sfnt version 0x{sfntVersion:X8}).");
         }
 
         ushort numTables = BinaryPrimitives.ReadUInt16BigEndian(data.AsSpan(4, 2));
@@ -99,32 +128,32 @@ internal sealed class TrueTypeFont
         if (isCff)
         {
             // CFF-based fonts (OTTO) are not supported by the glyf rasterizer.
-            font.ReadNameTable(fontPath);
+            font.ReadNameTable(source);
             throw new GlyphRendererException(
-                $"Font file '{fontPath}' uses CFF outlines ('OTTO'), which are not supported by the rasterizer. " +
+                $"Font {source} uses CFF outlines ('OTTO'), which are not supported by the rasterizer. " +
                 "Convert to a TrueType-outline font (.ttf) or use a different font.");
         }
 
-        font.ParseHead(fontPath);
-        font.ParseMaxp(fontPath);
-        font.ParseHhea(fontPath);
-        font.ParseHmtx(fontPath);
-        font.ParseLoca(fontPath);
-        font.ParseCmap(fontPath);
-        font.ReadNameTable(fontPath);
+        font.ParseHead(source);
+        font.ParseMaxp(source);
+        font.ParseHhea(source);
+        font.ParseHmtx(source);
+        font.ParseLoca(source);
+        font.ParseCmap(source);
+        font.ReadNameTable(source);
         return font;
     }
 
-    private void ParseHead(string fontPath)
+    private void ParseHead(string source)
     {
         if (!_tables.TryGetValue("head", out var head))
         {
-            throw new GlyphRendererException($"Font '{fontPath}' is missing the 'head' table.");
+            throw new GlyphRendererException($"Font {source} is missing the 'head' table.");
         }
 
         if (head.Offset + 54 > _data.Length)
         {
-            throw new GlyphRendererException($"Font '{fontPath}' has a truncated 'head' table.");
+            throw new GlyphRendererException($"Font {source} has a truncated 'head' table.");
         }
 
         _unitsPerEm = BinaryPrimitives.ReadUInt16BigEndian(_data.AsSpan((int)head.Offset + 18, 2));
@@ -139,15 +168,15 @@ internal sealed class TrueTypeFont
 
         if (_unitsPerEm <= 0)
         {
-            throw new GlyphRendererException($"Font '{fontPath}' has an invalid unitsPerEm ({_unitsPerEm}).");
+            throw new GlyphRendererException($"Font {source} has an invalid unitsPerEm ({_unitsPerEm}).");
         }
     }
 
-    private void ParseMaxp(string fontPath)
+    private void ParseMaxp(string source)
     {
         if (!_tables.TryGetValue("maxp", out var maxp))
         {
-            throw new GlyphRendererException($"Font '{fontPath}' is missing the 'maxp' table.");
+            throw new GlyphRendererException($"Font {source} is missing the 'maxp' table.");
         }
 
         // version 0x00005000 has no numGlyphs; use 0 in that case.
@@ -157,11 +186,11 @@ internal sealed class TrueTypeFont
             : BinaryPrimitives.ReadUInt16BigEndian(_data.AsSpan((int)maxp.Offset + 4, 2));
     }
 
-    private void ParseHhea(string fontPath)
+    private void ParseHhea(string source)
     {
         if (!_tables.TryGetValue("hhea", out var hhea))
         {
-            throw new GlyphRendererException($"Font '{fontPath}' is missing the 'hhea' table.");
+            throw new GlyphRendererException($"Font {source} is missing the 'hhea' table.");
         }
 
         _ascender = BinaryPrimitives.ReadInt16BigEndian(_data.AsSpan((int)hhea.Offset + 4, 2));
@@ -169,21 +198,21 @@ internal sealed class TrueTypeFont
         _numberOfHMetrics = BinaryPrimitives.ReadUInt16BigEndian(_data.AsSpan((int)hhea.Offset + 34, 2));
     }
 
-    private void ParseHmtx(string fontPath)
+    private void ParseHmtx(string source)
     {
         if (!_tables.TryGetValue("hmtx", out var hmtx))
         {
-            throw new GlyphRendererException($"Font '{fontPath}' is missing the 'hmtx' table.");
+            throw new GlyphRendererException($"Font {source} is missing the 'hmtx' table.");
         }
 
         _hmtxOffset = hmtx.Offset;
     }
 
-    private void ParseLoca(string fontPath)
+    private void ParseLoca(string source)
     {
         if (!_tables.TryGetValue("loca", out var loca) || !_tables.TryGetValue("glyf", out var glyf))
         {
-            throw new GlyphRendererException($"Font '{fontPath}' is missing the 'loca' or 'glyf' table (required for TrueType outlines).");
+            throw new GlyphRendererException($"Font {source} is missing the 'loca' or 'glyf' table (required for TrueType outlines).");
         }
 
         // head.indexToLocFormat: 0 = short (offsets/2), 1 = long.
@@ -194,17 +223,17 @@ internal sealed class TrueTypeFont
         _glyfOffset = glyf.Offset;
     }
 
-    private void ParseCmap(string fontPath)
+    private void ParseCmap(string source)
     {
         if (!_tables.TryGetValue("cmap", out var cmap))
         {
-            throw new GlyphRendererException($"Font '{fontPath}' is missing the 'cmap' table.");
+            throw new GlyphRendererException($"Font {source} is missing the 'cmap' table.");
         }
 
         _cmapOffset = cmap.Offset;
     }
 
-    private void ReadNameTable(string fontPath)
+    private void ReadNameTable(string source)
     {
         if (!_tables.TryGetValue("name", out var name))
         {

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using Solar.Captcha.GlyphRenderer;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Solar.Captcha.Tests;
@@ -19,6 +20,10 @@ public class CaptchaRenderingRegistrationTests
 {
     private const string DrawableCharset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+    /// <summary>The font used by the font-source tests; copied to the test output directory.</summary>
+    private static string TestFontPath =>
+        Path.Combine(TestContext.CurrentContext.TestDirectory, "Fonts", "arial.ttf");
+
     private static IHost BuildHost(Action<IServiceCollection> configure)
     {
         var builder = Host.CreateApplicationBuilder();
@@ -28,7 +33,7 @@ public class CaptchaRenderingRegistrationTests
     }
 
     /// <summary>Starts the host and returns the exception that stopped it, or null.</summary>
-    private static async Task<Exception> StartAndCaptureAsync(IHost host)
+    private static async Task<Exception?> StartAndCaptureAsync(IHost host)
     {
         try
         {
@@ -98,7 +103,7 @@ public class CaptchaRenderingRegistrationTests
         // Assert
         Assert.That(failure, Is.Not.Null, "start-up should have failed");
         Assert.That(failure, Is.InstanceOf<OptionsValidationException>());
-        Assert.That(failure.Message, Does.Contain("glyph set"));
+        Assert.That(failure!.Message, Does.Contain("glyph set"));
         Assert.That(failure.Message, Does.Contain("'!'"));
     }
 
@@ -138,7 +143,7 @@ public class CaptchaRenderingRegistrationTests
         // Assert
         Assert.That(failure, Is.Not.Null, "start-up should have failed");
         Assert.That(failure, Is.InstanceOf<OptionsValidationException>());
-        Assert.That(failure.Message, Does.Contain("no glyph set is registered"));
+        Assert.That(failure!.Message, Does.Contain("no glyph set is registered"));
         Assert.That(failure.Message, Does.Contain(nameof(BasicLetterCaptchaOptions)));
     }
 
@@ -159,7 +164,7 @@ public class CaptchaRenderingRegistrationTests
         // Assert
         Assert.That(failure, Is.Not.Null, "start-up should have failed");
         Assert.That(failure, Is.InstanceOf<OptionsValidationException>());
-        Assert.That(failure.Message, Does.Contain("cannot draw"));
+        Assert.That(failure!.Message, Does.Contain("cannot draw"));
         Assert.That(failure.Message, Does.Contain("'Z'"));
         Assert.That(failure.Message, Does.Contain(nameof(BasicLetterCaptchaOptions)));
     }
@@ -270,6 +275,55 @@ public class CaptchaRenderingRegistrationTests
         // Act & Assert
         Assert.Throws<ArgumentException>(() =>
             services.AddFontGlyphSource(options => options.FontPath = "definitely-not-a-font.ttf"));
+    }
+
+    [Test]
+    public void AddFontGlyphSource_WithBothFontPathAndStreamFactory_ThrowsAtRegistration()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => services.AddFontGlyphSource(options =>
+        {
+            options.FontPath = TestFontPath;
+            options.FontStreamFactory = () => File.OpenRead(TestFontPath);
+        }));
+    }
+
+    [Test]
+    public async Task AddFontGlyphSource_WithStreamFactoryAndCoveringCharset_StartsSuccessfully()
+    {
+        // Arrange
+        using var host = BuildHost(services =>
+        {
+            services.AddFontGlyphSource(options => options.FontStreamFactory = () => File.OpenRead(TestFontPath));
+            services.AddGlyphSet(options => options.Charset = "ABC123");
+            services.AddSessionBasedCaptcha(options => options.Letters = "ABC123");
+        });
+
+        // Act
+        var failure = await StartAndCaptureAsync(host);
+
+        // Assert
+        Assert.That(failure, Is.Null, failure?.Message);
+    }
+
+    [Test]
+    public async Task AddFontGlyphSource_WithStreamFactoryReturningGarbage_StopsTheHostFromStarting()
+    {
+        // Arrange: the stream source must fail closed at start-up, exactly like a missing font file.
+        using var host = BuildHost(services =>
+        {
+            services.AddFontGlyphSource(options => options.FontStreamFactory = () => new MemoryStream([0x00, 0x01]));
+            services.AddGlyphSet(options => options.Charset = "ABC123");
+        });
+
+        // Act
+        var failure = await StartAndCaptureAsync(host);
+
+        // Assert
+        Assert.That(failure, Is.Not.Null, "a font that cannot be parsed must stop the host");
     }
 
     #endregion

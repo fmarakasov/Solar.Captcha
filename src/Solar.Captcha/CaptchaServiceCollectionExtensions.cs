@@ -29,7 +29,7 @@ public static class CaptchaServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="options">Optional configuration for the flow.</param>
-    public static void AddSessionBasedCaptcha(this IServiceCollection services, Action<BasicLetterCaptchaOptions> options = null)
+    public static void AddSessionBasedCaptcha(this IServiceCollection services, Action<BasicLetterCaptchaOptions>? options = null)
     {
         var option = new BasicLetterCaptchaOptions
         {
@@ -50,7 +50,7 @@ public static class CaptchaServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="options">Optional configuration for the flow.</param>
-    public static void AddStatelessCaptcha(this IServiceCollection services, Action<StatelessLetterCaptchaOptions> options = null)
+    public static void AddStatelessCaptcha(this IServiceCollection services, Action<StatelessLetterCaptchaOptions>? options = null)
     {
         services.AddDataProtection();
 
@@ -74,7 +74,7 @@ public static class CaptchaServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="options">Optional configuration for the flow.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddSharedKeyStatelessCaptcha(this IServiceCollection services, Action<SharedKeyStatelessLetterCaptchaOptions> options = null)
+    public static IServiceCollection AddSharedKeyStatelessCaptcha(this IServiceCollection services, Action<SharedKeyStatelessLetterCaptchaOptions>? options = null)
     {
         var option = new SharedKeyStatelessLetterCaptchaOptions
         {
@@ -97,13 +97,16 @@ public static class CaptchaServiceCollectionExtensions
     /// unusable font stops start-up rather than the first captcha request.
     /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="configureOptions">Configures the font path.</param>
+    /// <param name="configureOptions">
+    /// Configures the font source: either <see cref="GlyphRenderOptions.FontPath"/> for a font file
+    /// on disk, or <see cref="GlyphRenderOptions.FontStreamFactory"/> for a font read from a stream.
+    /// </param>
     /// <returns>The service collection for chaining.</returns>
     /// <exception cref="ArgumentException">Thrown when the options are invalid.</exception>
     /// <exception cref="InvalidOperationException">Thrown when a glyph source is already registered.</exception>
     public static IServiceCollection AddFontGlyphSource(
         this IServiceCollection services,
-        Action<GlyphRenderOptions> configureOptions = null)
+        Action<GlyphRenderOptions>? configureOptions = null)
     {
         ThrowIfGlyphSourceRegistered(services);
 
@@ -142,7 +145,7 @@ public static class CaptchaServiceCollectionExtensions
     /// <exception cref="ArgumentException">Thrown when the options are invalid.</exception>
     public static IServiceCollection AddGlyphSet(
         this IServiceCollection services,
-        Action<GlyphSetOptions> configureOptions = null)
+        Action<GlyphSetOptions>? configureOptions = null)
     {
         var options = new GlyphSetOptions();
         configureOptions?.Invoke(options);

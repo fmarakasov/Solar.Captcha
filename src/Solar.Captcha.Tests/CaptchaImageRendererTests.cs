@@ -13,19 +13,19 @@ public class CaptchaImageRendererTests
     /// <summary>Every character the static glyph source has an authored bitmap for.</summary>
     private const string TestCharset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    private ICaptchaImageRenderer _renderer;
+    private ICaptchaImageRenderer _renderer = null!;
 
     [SetUp]
     public void SetUp() => _renderer = CreateRenderer();
 
-    private static GlyphSet CreateGlyphSet(string charset, byte[] fallbackGlyph = null) =>
+    private static GlyphSet CreateGlyphSet(string charset, byte[]? fallbackGlyph = null) =>
         new GlyphSetFactory(new StaticGlyphRenderer())
             .Get(new GlyphSetOptions { Charset = charset, FallbackGlyph = fallbackGlyph });
 
     private static ICaptchaImageRenderer CreateRenderer(
-        Random random = null,
+        Random? random = null,
         string charset = TestCharset,
-        byte[] fallbackGlyph = null) =>
+        byte[]? fallbackGlyph = null) =>
         new CaptchaImageRenderer(CreateGlyphSet(charset, fallbackGlyph), random ?? Random.Shared);
 
     [Test]
@@ -222,7 +222,7 @@ public class CaptchaImageRendererTests
         var ex = Assert.Throws<ArgumentException>(() => _renderer.Render(300, 100, specialChars));
 
         // Assert
-        Assert.That(ex.ParamName, Is.EqualTo("captchaCode"));
+        Assert.That(ex!.ParamName, Is.EqualTo("captchaCode"));
         Assert.That(ex.Message, Does.Contain("cannot draw"));
         Assert.That(ex.Message, Does.Contain(TestCharset));
     }
@@ -237,7 +237,7 @@ public class CaptchaImageRendererTests
         var ex = Assert.Throws<ArgumentException>(() => _renderer.Render(300, 100, nonBmp));
 
         // Assert
-        Assert.That(ex.ParamName, Is.EqualTo("captchaCode"));
+        Assert.That(ex!.ParamName, Is.EqualTo("captchaCode"));
         Assert.That(ex.Message, Does.Contain("cannot draw"));
     }
 
@@ -265,7 +265,7 @@ public class CaptchaImageRendererTests
         // Act & Assert
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => _renderer.Render(0, 100, TestCaptchaCode));
 
-        Assert.That(ex.ParamName, Is.EqualTo("width"));
+        Assert.That(ex!.ParamName, Is.EqualTo("width"));
     }
 
     [Test]
@@ -274,7 +274,7 @@ public class CaptchaImageRendererTests
         // Act & Assert
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => _renderer.Render(-1, 100, TestCaptchaCode));
 
-        Assert.That(ex.ParamName, Is.EqualTo("width"));
+        Assert.That(ex!.ParamName, Is.EqualTo("width"));
     }
 
     [Test]
@@ -283,7 +283,7 @@ public class CaptchaImageRendererTests
         // Act & Assert
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => _renderer.Render(100, 0, TestCaptchaCode));
 
-        Assert.That(ex.ParamName, Is.EqualTo("height"));
+        Assert.That(ex!.ParamName, Is.EqualTo("height"));
     }
 
     [Test]
@@ -292,7 +292,7 @@ public class CaptchaImageRendererTests
         // Act & Assert
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => _renderer.Render(100, -1, TestCaptchaCode));
 
-        Assert.That(ex.ParamName, Is.EqualTo("height"));
+        Assert.That(ex!.ParamName, Is.EqualTo("height"));
     }
 
     [Test]
@@ -301,7 +301,7 @@ public class CaptchaImageRendererTests
         // Act & Assert
         var ex = Assert.Throws<ArgumentException>(() => _renderer.Render(100, 100, ""));
 
-        Assert.That(ex.ParamName, Is.EqualTo("captchaCode"));
+        Assert.That(ex!.ParamName, Is.EqualTo("captchaCode"));
     }
 
     [Test]
@@ -310,7 +310,7 @@ public class CaptchaImageRendererTests
         // Act & Assert
         var ex = Assert.Throws<ArgumentException>(() => _renderer.Render(100, 100, "   "));
 
-        Assert.That(ex.ParamName, Is.EqualTo("captchaCode"));
+        Assert.That(ex!.ParamName, Is.EqualTo("captchaCode"));
     }
 
     #endregion

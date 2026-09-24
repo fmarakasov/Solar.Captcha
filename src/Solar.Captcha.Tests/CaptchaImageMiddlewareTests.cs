@@ -12,15 +12,15 @@ namespace Solar.Captcha.Tests;
 [TestFixture]
 public class CaptchaImageMiddlewareTests
 {
-    private Mock<RequestDelegate> _mockNext;
-    private Mock<ISessionBasedCaptcha> _mockCaptcha;
-    private Mock<HttpContext> _mockHttpContext;
-    private Mock<HttpRequest> _mockRequest;
-    private Mock<HttpResponse> _mockResponse;
-    private Mock<ISession> _mockSession;
-    private Mock<IHeaderDictionary> _mockHeaders;
-    private MemoryStream _responseBodyStream;
-    private SessionCaptchaImageMiddleware _middleware;
+    private Mock<RequestDelegate> _mockNext = null!;
+    private Mock<ISessionBasedCaptcha> _mockCaptcha = null!;
+    private Mock<HttpContext> _mockHttpContext = null!;
+    private Mock<HttpRequest> _mockRequest = null!;
+    private Mock<HttpResponse> _mockResponse = null!;
+    private Mock<ISession> _mockSession = null!;
+    private Mock<IHeaderDictionary> _mockHeaders = null!;
+    private MemoryStream _responseBodyStream = null!;
+    private SessionCaptchaImageMiddleware _middleware = null!;
 
     [SetUp]
     public void SetUp()
@@ -340,7 +340,7 @@ public class CaptchaImageMiddlewareTests
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await _middleware.Invoke(_mockHttpContext.Object, _mockCaptcha.Object));
 
-        Assert.That(ex.Message, Is.EqualTo("Captcha generation failed"));
+        Assert.That(ex!.Message, Is.EqualTo("Captcha generation failed"));
     }
 
     [Test]
@@ -355,7 +355,7 @@ public class CaptchaImageMiddlewareTests
         var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await _middleware.Invoke(_mockHttpContext.Object, _mockCaptcha.Object));
 
-        Assert.That(ex.Message, Is.EqualTo("Next middleware failed"));
+        Assert.That(ex!.Message, Is.EqualTo("Next middleware failed"));
     }
 
     #endregion

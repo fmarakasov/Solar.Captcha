@@ -28,6 +28,8 @@ public class Startup(IConfiguration configuration)
         // be drawn stops the application instead of failing on the first captcha request.
         services.AddStaticGlyphSource();
         //services.AddFontGlyphSource(options => options.FontPath = "Fonts/arial.ttf");
+        // The same source also accepts a font that is not a file on disk — an embedded resource or
+        // a byte array — via options.FontStreamFactory = () => someReadableStream.
 
         // Must cover the Letters of every captcha flow registered below: the session-based flow
         // adds E, F, L and T to the default set, so the union is declared here.
@@ -58,7 +60,7 @@ public class Startup(IConfiguration configuration)
         services.AddSharedKeyStatelessCaptcha(options =>
         {
             // Generate this key once and store it securely (Azure Key Vault, etc.)
-            options.SharedKey = Configuration["CaptchaSharedKey"]; // Base64 encoded 256-bit key
+            options.SharedKey = Configuration["CaptchaSharedKey"] ?? string.Empty; // Base64 encoded 256-bit key
             options.FontStyle = CaptchaFontStyle.Bold;
             options.DrawLines = true;
             options.TokenExpiration = TimeSpan.FromMinutes(10);

@@ -112,7 +112,7 @@ internal sealed class CaptchaImageRenderer(GlyphSet glyphSet, Random random) : I
             _glyphSet.TryGetGlyph(character, out var glyph);
 
             GetRandomDeepColor(out var r, out var g, out var b);
-            img.DrawGlyph(glyph, x, y, scale, r, g, b, fontStyle, degrees);
+            img.DrawGlyph(glyph!, x, y, scale, r, g, b, fontStyle, degrees);
 
             currentX += charW + _random.Next(1, 4);
         }

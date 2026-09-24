@@ -8,7 +8,7 @@ namespace Solar.Captcha;
 
 public class SessionBasedCaptchaOptions
 {
-    public string SessionName { get; set; }
+    public string SessionName { get; set; } = string.Empty;
     public CaptchaFontStyle FontStyle { get; set; } = CaptchaFontStyle.Regular;
     public bool DrawLines { get; set; } = true;
     public string[] BlockedCodes { get; set; } = [];
@@ -27,7 +27,7 @@ public abstract class SessionBasedCaptcha(
 
     public abstract string GenerateCaptchaCode();
 
-    public byte[] GenerateCaptchaImageBytes(ISession httpSession, int width = 100, int height = 36, string sessionKeyName = null)
+    public byte[] GenerateCaptchaImageBytes(ISession httpSession, int width = 100, int height = 36, string? sessionKeyName = null)
     {
         EnsureHttpSession(httpSession);
 
@@ -62,7 +62,7 @@ public abstract class SessionBasedCaptcha(
         return captchaCode;
     }
 
-    public FileStreamResult GenerateCaptchaImageFileStream(ISession httpSession, int width = 100, int height = 36, string sessionKeyName = null)
+    public FileStreamResult GenerateCaptchaImageFileStream(ISession httpSession, int width = 100, int height = 36, string? sessionKeyName = null)
     {
         EnsureHttpSession(httpSession);
 
@@ -82,7 +82,7 @@ public abstract class SessionBasedCaptcha(
     /// <param name="ignoreCase">Ignore Case (default = true)</param>
     /// <param name="dropSession">Whether to drop session regardless of the validation pass or not (default = true)</param>
     /// <returns>Is Valid Captcha Challenge</returns>
-    public bool Validate(string userInputCaptcha, ISession httpSession, bool ignoreCase = true, bool dropSession = true, string sessionKeyName = null)
+    public bool Validate(string? userInputCaptcha, ISession httpSession, bool ignoreCase = true, bool dropSession = true, string? sessionKeyName = null)
     {
         if (string.IsNullOrWhiteSpace(userInputCaptcha))
         {

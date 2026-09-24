@@ -6,5 +6,5 @@ public class SessionCaptchaModel : ICaptchable
 {
     [Required]
     [StringLength(4)]
-    public string CaptchaCode { get; set; }
+    public string? CaptchaCode { get; set; }
 }
