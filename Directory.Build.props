@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
-    <Version>1.0.1</Version>
-    <Authors>Edi Wang</Authors>
-    <Company>edi.wang</Company>
-    <Copyright>(c) 2026 edi.wang</Copyright>
+    <Version>6.0.2-preview-1</Version>
+    <Authors>Edi Wang, SolarLab</Authors>
+    <Company>edi.wang, SolarLab</Company>
+    <Copyright>(c) 2026 edi.wang, (c) 2026 SolarLab</Copyright>
     <TargetFrameworks>net11.0</TargetFrameworks>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/fmarakasov/Solar.Captcha</PackageProjectUrl>
