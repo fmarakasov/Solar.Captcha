@@ -11,12 +11,15 @@ Generate and validate Captcha images in ASP.NET Core. Based on [Edi.Captcha.AspN
 
 ## Key Differences from Edi.Captcha.AspNetCore
 
-While this library was originally forked from `Edi.Captcha.AspNetCore`, it has been heavily refactored to prioritize **DI friendliness**, **security**, and **fail-fast architecture**:
+`Solar.Captcha` exists because the rendering model in `Edi.Captcha.AspNetCore` changed after the SixLabors dependency was removed. That change introduced an internal graphics core and dropped user-provided font support, effectively limiting rendering to primitive Latin glyphs.
 
-- **No Static Entry Points or Global State**: `CaptchaImageGenerator` (static) has been replaced by `ICaptchaImageRenderer` (resolved from DI as a singleton). All captcha flow services (`SessionBasedCaptcha`, `StatelessCaptcha`) now construct and resolve their dependencies cleanly.
-- **Fail-Fast Start-Up Validation**: Glyph lookup is no longer deferred to the per-request render pipeline. Instead, a complete, immutable **`GlyphSet`** is materialised once at host start-up (via `ValidateOnStart()`). Any unresolved character, invalid font path, or mismatch between what a captcha flow generates and what the renderer can draw causes a **hard start-up failure** before your application can serve its first request, rather than throwing errors or rendering unreadable placeholders in front of your users.
-- **No Implicit Placeholder Fallbacks**: The old silent fallback to a generic rectangle for unknown characters has been removed. Fallback is now an explicit, build-time registration choice (`GlyphSetOptions.FallbackGlyph`).
-- **Injectable Random Source**: To support deterministic unit testing and ensure thread safety, the image renderer takes a `System.Random` instance (defaulting to `Random.Shared`), completely removing the process-wide shared static dependencies.
+`Solar.Captcha` brings font-based rendering back without introducing new image dependencies, so you can use custom glyphs (including non-Latin scripts) from your own TrueType/OpenType font assets.
+
+- **Dynamic Glyph Creation from Font File or Stream**: Register a glyph source from `FontPath` or `FontStreamFactory`, then build a `GlyphSet` for your configured charset. Glyphs are generated from the provided TTF/OTF data instead of being limited to fixed primitive bitmaps.
+- **DI-First Architecture (No Static Classes)**: Rendering and captcha flows are fully DI-driven (`ICaptchaImageRenderer`, `SessionBasedCaptcha`, `StatelessCaptcha`, shared-key flow). No static entry points are required.
+- **Injectable Random for Deterministic Tests**: The renderer accepts an injected `System.Random` (default: `Random.Shared`) so tests can use a deterministic random source while production keeps thread-safe shared randomness.
+- **Nullable Enabled**: The codebase is maintained with nullable reference types enabled to reduce null-related runtime defects and improve API correctness.
+- **.NET 11 Preview Targeting and Stabilization Plan**: Current preview packages target `.NET 11`. The first stable release is planned after the official `.NET 11` GA release date.
 
 ---
 
