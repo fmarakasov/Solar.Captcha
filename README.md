@@ -19,7 +19,7 @@ Generate and validate Captcha images in ASP.NET Core. Based on [Edi.Captcha.AspN
 - **DI-First Architecture (No Static Classes)**: Rendering and captcha flows are fully DI-driven (`ICaptchaImageRenderer`, `SessionBasedCaptcha`, `StatelessCaptcha`, shared-key flow). No static entry points are required.
 - **Injectable Random for Deterministic Tests**: The renderer accepts an injected `System.Random` (default: `Random.Shared`) so tests can use a deterministic random source while production keeps thread-safe shared randomness.
 - **Nullable Enabled**: The codebase is maintained with nullable reference types enabled to reduce null-related runtime defects and improve API correctness.
-- **.NET 11 Preview Targeting and Stabilization Plan**: Current preview packages target `.NET 11`. The first stable release is planned after the official `.NET 11` GA release date.
+- **.NET 11 Preview Targeting and Stabilization Plan**: Current preview packages target `.NET 11` (along with `.NET 10`). The first stable release is planned after the official `.NET 11` GA release date.
 
 ---
 
