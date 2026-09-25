@@ -38,22 +38,64 @@ dotnet add package Solar.Captcha
 
 ## Glyph Rendering Setup (required)
 
-Every captcha flow below draws through a shared image renderer, and that renderer has to be told what it's allowed to draw. Register **one** glyph source and **one** glyph set before registering any captcha flow:
+Every captcha flow below draws through a shared image renderer, and that renderer has to be told what it's allowed to draw. Whichever scenario fits your app, you register **one** glyph source and **one** glyph set before registering any captcha flow.
+
+The glyph set is built once, while the host starts. If a character can't be resolved — a typo in the font path, a charset the font doesn't cover — the application **fails to start** with a clear error, instead of failing on the first captcha request. There is no default source and no default charset.
+
+In all three scenarios, `AddGlyphSet` declares the characters your flows will generate. It must cover the `Letters` of every `AddSessionBasedCaptcha` / `AddStatelessCaptcha` / `AddSharedKeyStatelessCaptcha` call:
 
 ```csharp
-// Pick one source:
-services.AddStaticGlyphSource();                                   // hand-authored bitmaps, digits + uppercase A-Z
-// services.AddFontGlyphSource(o => o.FontPath = "Fonts/arial.ttf");             // any TrueType/OpenType font file
-// services.AddFontGlyphSource(o => o.FontStreamFactory = OpenFontStream);       // any TrueType/OpenType font stream
-
-// Declare every character your captcha flows will generate. Must cover the `Letters`
-// of every AddSessionBasedCaptcha / AddStatelessCaptcha / AddSharedKeyStatelessCaptcha call below.
 services.AddGlyphSet(options => options.Charset = "2346789ABCDEFGHJKLMNPRTUVWXYZ");
 ```
 
-`AddFontGlyphSource` reads the font from either `FontPath` (a file on disk) or `FontStreamFactory` (a `Func<Stream>` returning a fresh, readable stream — for embedded resources, byte arrays, or remote fonts). Set exactly one of the two; setting both, or neither, throws at registration. The factory is invoked once, and the stream it returns is disposed by the library.
+`Charset` is compared case-insensitively and normalised to upper case. Optionally set `GlyphSetOptions.FallbackGlyph` to substitute a glyph for characters the source can't resolve; when it's `null` (the default), an unresolvable character fails start-up.
 
-The glyph set is built once, while the host starts. If a character can't be resolved — a typo in the font path, a charset the font doesn't cover — the application **fails to start** with a clear error, instead of failing on the first captcha request. There is no default source and no default charset.
+### Scenario 1: Static Glyphs (No External Assets)
+
+Use the hand-authored bitmaps embedded in the package. This covers digits `0-9` and the Latin alphabet `A-Z` (case-insensitive) — no font file needed.
+
+```csharp
+services.AddStaticGlyphSource();
+services.AddGlyphSet(options => options.Charset = "2346789ABCDEFGHJKLMNPRTUVWXYZ");
+```
+
+This is the right choice for plain Latin captchas and for keeping deployment free of font assets. It cannot draw anything outside its authored set — non-Latin scripts or punctuation the package doesn't ship a glyph for will fail start-up.
+
+### Scenario 2: Glyphs from a Font File
+
+Point the renderer at a TrueType/OpenType font file on disk. Use this when you need characters the static glyphs don't cover, such as non-Latin scripts.
+
+```csharp
+services.AddFontGlyphSource(options => options.FontPath = "Fonts/arial.ttf");
+services.AddGlyphSet(options => options.Charset = "2346789ABCDEFGHJKLMNPRTUVWXYZ");
+```
+
+Because the path is configuration-friendly, this is the scenario to choose when the font location comes from `appsettings.json` or an environment variable. `FontPath` must point at an existing file; it is validated at registration and again when the glyph set is built, so a bad path stops start-up.
+
+### Scenario 3: Glyphs from a Stream
+
+Use a `Func<Stream>` factory for fonts that aren't a file on disk: embedded resources, `byte[]` in memory, or a remote stream downloaded at start-up. This is code-only, since a delegate can't be expressed in configuration.
+
+```csharp
+services.AddFontGlyphSource(options => options.FontStreamFactory = OpenFontStream);
+services.AddGlyphSet(options => options.Charset = "2346789ABCDEFGHJKLMNPRTUVWXYZ");
+
+static Stream OpenFontStream()
+{
+    // Fresh, readable stream each call — rewindable and not already disposed.
+    return typeof(Program).Assembly.GetManifestResourceStream("MyApp.Fonts.arial.ttf")
+        ?? throw new InvalidOperationException("Font resource not found.");
+}
+```
+
+The factory is invoked once, when the renderer is constructed. The library reads the stream to the end and disposes it, so the factory must return a **fresh, readable** stream on every call (don't return a cached, already-disposed, or non-seekable-at-position-0 instance).
+
+### Font Source Rules
+
+`AddFontGlyphSource` (Scenarios 2 and 3) reads the font from **either** `FontPath` **or** `FontStreamFactory`:
+
+- Set exactly one of the two. Setting **both**, or **neither**, throws `ArgumentException` at registration.
+- `AddStaticGlyphSource` and `AddFontGlyphSource` are mutually exclusive — only **one** glyph source may be registered. Registering a second throws `InvalidOperationException`.
 
 ## Session-Based Captcha (Traditional Approach)
 
