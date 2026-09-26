@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Solar.Captcha.Fonts;
 
 namespace Solar.Captcha.GlyphRenderer;
 

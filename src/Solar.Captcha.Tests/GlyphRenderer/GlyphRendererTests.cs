@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using Solar.Captcha.Fonts;
 using Solar.Captcha.GlyphRenderer;
 using System;
 using System.Collections.Generic;

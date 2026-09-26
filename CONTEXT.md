@@ -22,6 +22,13 @@ This document defines the domain model and vocabulary for the Solar.Captcha proj
 | **Glyph Set** | An immutable, **total** `char → Glyph` map over the Required Charset, built once at start-up by running the registered Glyph Source over the charset. Construction fails, naming every unresolved character, unless a Fallback Glyph is configured. Drawn from by the **Captcha Image Renderer**, never by looking up a Glyph Source per character. |
 | **Fallback Glyph** | An optional Glyph, configured via `GlyphSetOptions.FallbackGlyph`, substituted for every character in the Required Charset that the Glyph Source could not resolve. An explicit, application-level decision — not a behavior any Glyph Source performs on its own. |
 | **Captcha Image Renderer** | `ICaptchaImageRenderer` — draws a captcha code to a PNG image from a **Glyph Set** and an injected `System.Random`. Resolved from DI as a singleton; has no static entry point and no implicit default. |
+| **Rasterizer** | The shared contour-flattening and even-odd ray-casting engine (`OutlineRasterizer`) that fills TrueType vector outlines into binary pixel coverage masks at arbitrary scales without anti-aliasing (ADR-0010). |
+| **Framebuffer** | An in-memory 2D array of 32-bit straight RGBA pixels (`RasterCanvas`) providing 2D drawing primitives (lines, gradient fills, polygon strokes, text stamping) without dependencies on external imaging libraries (ADR-0011). |
+| **Palette** | An indexed color table (`GifPalette`) containing up to 256 RGB colors used by GIF encoding, constructed from exact authored colors with uniform distance sampling when gradients exceed the limit. |
+| **LZW** | The Lempel-Ziv-Welch data compression algorithm implementation (`LzwEncoder`) used to encode variable-width bitstreams for GIF image data blocks with dictionary clearing at 4096 entries (ADR-0012). |
+| **GIF89a** | The standard animated graphic interchange format emitted as streaming byte sequences with screen descriptors, color tables, graphic control blocks, and looping application metadata. |
+| **Raster Font** | A parsed TrueType font (`RasterFont`) providing metric measurement and arbitrary-scale outline rasterization for general canvas typography. |
+| **Clock Render** | The composition and rendering process (`ClockGifRenderer`) that generates an animated 60-frame analog clock challenge from geometric, color, and font parameters (ADR-0013). |
 
 ## Implementation Approach
 

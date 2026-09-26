@@ -1,22 +1,36 @@
 using System;
-using System.Collections.Generic;
+using Solar.Captcha.Fonts;
 
 namespace Solar.Captcha.GlyphRenderer;
 
 /// <summary>
-/// Rasterizes a TrueType glyph outline into a 1-bit glyph bitmap
-/// (a row-major array of bytes; MSB of each byte = leftmost pixel).
+/// Rasterizes a TrueType glyph outline into the fixed Solar.Captcha glyph bitmap:
+/// 8 pixels wide, 14 tall, one byte per row, MSB of each byte = leftmost pixel.
 /// </summary>
+/// <remarks>
+/// This is the 8×14 specialisation of <see cref="OutlineRasterizer"/>. It computes the fit
+/// (uniform scale, preserved aspect ratio, horizontal centering, baseline on the font ascender —
+/// see ADR-002/003), delegates the contour fill to the shared rasterizer, and packs the resulting
+/// coverage mask into the glyph bit format (ADR-001). Keeping the fit here rather than in the
+/// rasterizer is what allows the same fill to serve arbitrary pixel grids without changing a
+/// single bit of the glyph output.
+/// </remarks>
 internal static class GlyphRasterizer
 {
     /// <summary>
-    /// Rasterizes the outline into the fixed Solar.Captcha glyph grid (8×14 pixels, one byte
-    /// per row, MSB = leftmost pixel — see ADR-001) using uniform scaling that preserves
-    /// aspect ratio, horizontal centering, baseline alignment, and even-odd fill of the
-    /// flattened outline (see ADR-002/003).
+    /// Rasterizes the outline into the fixed Solar.Captcha glyph grid.
     /// </summary>
+    /// <param name="outline">The glyph outline, in font units.</param>
+    /// <param name="font">The font the outline came from, used for its vertical metrics.</param>
+    /// <returns>
+    /// Fourteen bytes: one byte per pixel row, MSB = leftmost pixel. An empty or degenerate
+    /// outline yields fourteen zero bytes rather than throwing.
+    /// </returns>
     public static byte[] Rasterize(GlyphOutline outline, TrueTypeFont font)
     {
+        ArgumentNullException.ThrowIfNull(outline);
+        ArgumentNullException.ThrowIfNull(font);
+
         const int width = CaptchaFont.GlyphWidth;
         const int height = CaptchaFont.GlyphHeight;
 
@@ -26,50 +40,39 @@ internal static class GlyphRasterizer
             return result;
         }
 
-        int gxMin = int.MaxValue, gyMin = int.MaxValue, gxMax = int.MinValue, gyMax = int.MinValue;
-        for (int i = 0; i < outline.PointCount; i++)
-        {
-            gxMin = Math.Min(gxMin, outline.Xs[i]);
-            gyMin = Math.Min(gyMin, outline.Ys[i]);
-            gxMax = Math.Max(gxMax, outline.Xs[i]);
-            gyMax = Math.Max(gyMax, outline.Ys[i]);
-        }
-
-        if (gxMax <= gxMin || gyMax <= gyMin)
+        var (minX, minY, maxX, maxY) = OutlineRasterizer.Bounds(outline);
+        if (maxX <= minX || maxY <= minY)
         {
             return result;
         }
 
-        int ascender = font.Ascender;
-        int descender = font.Descender;
-        int emHeight = ascender - descender;
+        var ascender = font.Ascender;
+        var emHeight = ascender - font.Descender;
         if (emHeight <= 0)
         {
-            emHeight = gyMax - gyMin;
-            ascender = gyMax;
+            emHeight = maxY - minY;
+            ascender = maxY;
         }
 
-        float scale = Math.Min((float)height / emHeight, (float)width / (gxMax - gxMin));
+        var scale = Math.Min((float)height / emHeight, (float)width / (maxX - minX));
         if (scale <= 0f)
         {
             return result;
         }
 
-        int baselineY = (int)MathF.Round(scale * ascender);
-        float glyphPixelWidth = scale * (gxMax - gxMin);
-        int xOffset = (int)MathF.Round((width - glyphPixelWidth) / 2f);
+        var baselineY = (int)MathF.Round(scale * ascender);
+        var glyphPixelWidth = scale * (maxX - minX);
+        var xOffset = (int)MathF.Round((width - glyphPixelWidth) / 2f);
 
-        var segments = FlattenContours(outline);
+        var coverage = new byte[width * height];
+        OutlineRasterizer.Fill(coverage, width, height, outline, scale, xOffset, baselineY);
 
-        for (int py = 0; py < height; py++)
+        for (var py = 0; py < height; py++)
         {
             byte row = 0;
-            for (int px = 0; px < width; px++)
+            for (var px = 0; px < width; px++)
             {
-                float fx = gxMin + (px + 0.5f - xOffset) / scale;
-                float fy = (baselineY - (py + 0.5f)) / scale;
-
-                if (IsInside(fx, fy, segments))
+                if (coverage[(py * width) + px] != 0)
                 {
                     row |= (byte)(0x80 >> px);
                 }
@@ -79,127 +82,5 @@ internal static class GlyphRasterizer
         }
 
         return result;
-    }
-
-    private static List<(float X1, float Y1, float X2, float Y2)> FlattenContours(GlyphOutline outline)
-    {
-        var segments = new List<(float, float, float, float)>();
-        int contourStart = 0;
-        foreach (var endPt in outline.EndPoints)
-        {
-            FlattenContour(outline, contourStart, endPt, segments);
-            contourStart = endPt + 1;
-        }
-
-        return segments;
-    }
-
-    private static void FlattenContour(GlyphOutline outline, int start, int end, List<(float, float, float, float)> segments)
-    {
-        var xs = outline.Xs;
-        var ys = outline.Ys;
-        var onCurve = outline.OnCurve;
-
-        float startX = xs[start];
-        float startY = ys[start];
-        if (!onCurve[start] && onCurve[end])
-        {
-            startX = xs[end];
-            startY = ys[end];
-        }
-        else if (!onCurve[start] && !onCurve[end])
-        {
-            startX = (xs[start] + xs[end]) / 2f;
-            startY = (ys[start] + ys[end]) / 2f;
-        }
-
-        float prevX = startX;
-        float prevY = startY;
-
-        for (int idx = start; idx <= end; idx++)
-        {
-            if (onCurve[idx])
-            {
-                if (idx > start || onCurve[start])
-                {
-                    EmitLine(segments, prevX, prevY, xs[idx], ys[idx]);
-                }
-                prevX = xs[idx];
-                prevY = ys[idx];
-            }
-            else
-            {
-                int nextIdx = (idx == end) ? start : idx + 1;
-                float endX, endY;
-
-                if (onCurve[nextIdx])
-                {
-                    endX = xs[nextIdx];
-                    endY = ys[nextIdx];
-                    EmitQuadratic(segments, prevX, prevY, xs[idx], ys[idx], endX, endY);
-                    prevX = endX;
-                    prevY = endY;
-                }
-                else
-                {
-                    endX = (xs[idx] + xs[nextIdx]) / 2f;
-                    endY = (ys[idx] + ys[nextIdx]) / 2f;
-                    EmitQuadratic(segments, prevX, prevY, xs[idx], ys[idx], endX, endY);
-                    prevX = endX;
-                    prevY = endY;
-                }
-            }
-        }
-
-        EmitLine(segments, prevX, prevY, startX, startY);
-    }
-
-    private static void EmitLine(List<(float, float, float, float)> segments, float x1, float y1, float x2, float y2)
-    {
-        if (MathF.Abs(x2 - x1) < 1e-4f && MathF.Abs(y2 - y1) < 1e-4f)
-        {
-            return;
-        }
-
-        segments.Add((x1, y1, x2, y2));
-    }
-
-    private static void EmitQuadratic(List<(float, float, float, float)> segments, float x0, float y0, float cx, float cy, float x1, float y1)
-    {
-        const int subdivisions = 8;
-        for (int s = 0; s < subdivisions; s++)
-        {
-            float t0 = s / (float)subdivisions;
-            float t1 = (s + 1) / (float)subdivisions;
-            float ax = SampleQuadratic(x0, cx, x1, t0);
-            float ay = SampleQuadratic(y0, cy, y1, t0);
-            float bx = SampleQuadratic(x0, cx, x1, t1);
-            float by = SampleQuadratic(y0, cy, y1, t1);
-            EmitLine(segments, ax, ay, bx, by);
-        }
-    }
-
-    private static float SampleQuadratic(float p0, float c, float p1, float t)
-    {
-        float u = 1f - t;
-        return u * u * p0 + 2f * u * t * c + t * t * p1;
-    }
-
-    private static bool IsInside(float x, float y, List<(float X1, float Y1, float X2, float Y2)> segments)
-    {
-        bool inside = false;
-        foreach (var (x1, y1, x2, y2) in segments)
-        {
-            if ((y1 > y) != (y2 > y))
-            {
-                float xIntersect = x1 + (y - y1) * (x2 - x1) / (y2 - y1);
-                if (xIntersect > x)
-                {
-                    inside = !inside;
-                }
-            }
-        }
-
-        return inside;
     }
 }
