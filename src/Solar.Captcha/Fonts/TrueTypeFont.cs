@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace Solar.Captcha.GlyphRenderer;
+using Solar.Captcha.GlyphRenderer;
+
+namespace Solar.Captcha.Fonts;
 
 /// <summary>
 /// A minimal TrueType/OpenType font reader. It parses the tables required to
@@ -258,16 +260,31 @@ internal sealed class TrueTypeFont
                     break;
                 }
 
+                ushort platformId = BinaryPrimitives.ReadUInt16BigEndian(_data.AsSpan(record, 2));
                 ushort nameId = BinaryPrimitives.ReadUInt16BigEndian(_data.AsSpan(record + 6, 2));
                 ushort length = BinaryPrimitives.ReadUInt16BigEndian(_data.AsSpan(record + 8, 2));
                 ushort strOff = BinaryPrimitives.ReadUInt16BigEndian(_data.AsSpan(record + 10, 2));
+
                 // Family name = nameId 1 (typographic family) or 16 (preferred family).
-                if (nameId is 1 or 16 && FamilyName is null)
+                if (nameId is 1 or 16)
                 {
                     int start = offset + stringOffset + strOff;
                     if (start >= 0 && start + length <= _data.Length)
                     {
-                        FamilyName = Encoding.UTF8.GetString(_data, start, length);
+                        var encoding = platformId is 0 or 3
+                            ? Encoding.BigEndianUnicode
+                            : Encoding.UTF8;
+
+                        var nameString = encoding.GetString(_data, start, length).Trim();
+                        if (!string.IsNullOrEmpty(nameString))
+                        {
+                            FamilyName = nameString;
+                            if (nameId == 16)
+                            {
+                                // Preferred family name has higher priority; keep it.
+                                break;
+                            }
+                        }
                     }
                 }
             }
