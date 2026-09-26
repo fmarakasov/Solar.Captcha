@@ -71,3 +71,17 @@ This repository contains `Solar.Captcha`, an ASP.NET Core captcha library, plus 
 
 - The library project generates a NuGet package on build and includes the root `README.md` and `img/edi-logo-blue.png` as package assets.
 - Do not change package metadata, target frameworks, package icon, or version unless explicitly requested.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical triage label vocabulary. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context (`CONTEXT.md` and `docs/adr/`). See `docs/agents/domain.md`.
