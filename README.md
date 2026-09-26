@@ -16,6 +16,7 @@ Generate and validate Captcha images in ASP.NET Core. Based on [Edi.Captcha.AspN
 `Solar.Captcha` brings font-based rendering back without introducing new image dependencies, so you can use custom glyphs (including non-Latin scripts) from your own TrueType/OpenType font assets.
 
 - **Dynamic Glyph Creation from Font File or Stream**: Register a glyph source from `FontPath` or `FontStreamFactory`, then build a `GlyphSet` for your configured charset. Glyphs are generated from the provided TTF/OTF data instead of being limited to fixed primitive bitmaps.
+- **Standalone 2D Graphics and Animated GIF Engine (`Solar.Captcha.Raster`)**: Includes a dependency-free 2D canvas, TrueType font measurement and rasterization at arbitrary scales, streaming GIF89a / LZW encoder, and specialized challenge renderers such as animated analog clock faces.
 - **DI-First Architecture (No Static Classes)**: Rendering and captcha flows are fully DI-driven (`ICaptchaImageRenderer`, `SessionBasedCaptcha`, `StatelessCaptcha`, shared-key flow). No static entry points are required.
 - **Injectable Random for Deterministic Tests**: The renderer accepts an injected `System.Random` (default: `Random.Shared`) so tests can use a deterministic random source while production keeps thread-safe shared randomness.
 - **Nullable Enabled**: The codebase is maintained with nullable reference types enabled to reduce null-related runtime defects and improve API correctness.
@@ -451,3 +452,94 @@ public void ConfigureServices(IServiceCollection services)
 ### 4. Example Controller and View
 
 See: [src\Solar.Captcha.SampleApp\Controllers\SharedKeyStatelessController.cs](src/Solar.Captcha.SampleApp/Controllers/SharedKeyStatelessController.cs) and [src\Solar.Captcha.SampleApp\Views\SharedKeyStateless\Index.cshtml](src/Solar.Captcha.SampleApp/Views/SharedKeyStateless/Index.cshtml) for a complete example.
+
+---
+
+## 2D Raster Graphics & Animated GIF Rendering (`Solar.Captcha.Raster`)
+
+`Solar.Captcha.Raster` provides a lightweight, allocation-conscious, zero-dependency 2D graphics engine. It replaces heavy external image libraries for applications that require vector outline rendering, linear gradient backgrounds, geometry stamping, and animated GIF output.
+
+### 1. `RasterCanvas` and 2D Primitives
+
+`RasterCanvas` is an in-memory 32-bit RGBA drawing surface.
+
+```csharp
+using Solar.Captcha.Raster;
+
+var canvas = new RasterCanvas(240, 240);
+
+// Fill with a two-point linear gradient
+var gradient = new LinearGradientBrush(
+    new Point(0, 0),
+    new Point(240, 240),
+    RasterColor.FromHex("#1E1E2F"),
+    RasterColor.FromHex("#0F0F17")
+);
+canvas.FillLinearGradient(gradient);
+
+// Draw stroked lines and shapes with round caps and joins
+var pen = new RasterPen(RasterColor.White, width: 3);
+canvas.DrawLine(new PointF(20, 20), new PointF(220, 220), pen);
+canvas.FillCircle(new Point(120, 120), radius: 5, RasterColor.FromHex("#FFCC00"));
+
+// Encode to PNG bytes
+byte[] pngBytes = PngEncoder.Encode(canvas);
+```
+
+### 2. Arbitrary-Scale Font Typography (`RasterFont` and `RasterFontResolver`)
+
+Load TrueType/OpenType fonts at any point size to measure and draw text:
+
+```csharp
+// Discover a system or local font by family name
+string fontPath = RasterFontResolver.ResolveFontPath("Arial");
+
+// Load font at 14px size
+var font = RasterFont.FromFile(fontPath, sizePx: 14);
+
+// Measure advance and line metrics
+int textWidth = font.MeasureText("12");
+
+// Render text onto a canvas
+canvas.DrawText("12", x: 110, baselineY: 35, font, RasterColor.White);
+```
+
+### 3. Animated GIF Rendering (`GifEncoder` and `ClockGifRenderer`)
+
+#### Streaming GIF89a Encoding
+
+The `GifEncoder` streams frames directly to an output stream without buffering full-resolution animations in memory:
+
+```csharp
+using var outputStream = new MemoryStream();
+using var encoder = new GifEncoder(outputStream, width: 240, height: 240);
+
+// Palette is constructed from first frame and optional seeded colors
+encoder.Begin(firstFrameCanvas, [RasterColor.White, RasterColor.Red]);
+
+for (int frame = 0; frame < 60; frame++)
+{
+    // Draw next frame on canvas...
+    encoder.WriteFrame(currentFrameCanvas, delayHundredthsOfSecond: 100);
+}
+
+encoder.End();
+```
+
+#### Ready-to-Use Animated Clock CAPTCHA (`ClockGifRenderer`)
+
+Render a complete 60-second animated clock face with hour/minute hands, rotating second hand, circular dial markings, and numeral layout:
+
+```csharp
+var options = new ClockRenderOptions
+{
+    Hour = 10,
+    Minute = 15,
+    FontPath = RasterFontResolver.ResolveFontPath("Arial"),
+    BackgroundColor = RasterColor.FromHex("#1A1A1A"),
+    DialColor = RasterColor.White,
+    SecondHandColor = RasterColor.FromHex("#FF3B30")
+};
+
+byte[] gifBytes = ClockGifRenderer.Render(options);
+```

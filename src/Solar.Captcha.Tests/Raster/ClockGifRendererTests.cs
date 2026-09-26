@@ -111,7 +111,7 @@ public class ClockGifRendererTests
 
         var bytes = renderer.Render(options, hours: 10, minutes: 10);
 
-        var artifacts = Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "..", "..", "..", "artifacts");
+        var artifacts = Path.Combine(TestContext.CurrentContext.TestDirectory, "artifacts");
         Directory.CreateDirectory(artifacts);
         var path = Path.Combine(artifacts, "clock-sample.gif");
         File.WriteAllBytes(path, bytes);
