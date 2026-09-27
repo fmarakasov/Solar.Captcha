@@ -18,6 +18,7 @@ Generate and validate Captcha images in ASP.NET Core. Based on [Edi.Captcha.AspN
 - **Dynamic Glyph Creation from Font File or Stream**: Register a glyph source from `FontPath` or `FontStreamFactory`, then build a `GlyphSet` for your configured charset. Glyphs are generated from the provided TTF/OTF data instead of being limited to fixed primitive bitmaps.
 - **Standalone 2D Graphics and Animated GIF Engine (`Solar.Captcha.Raster`)**: Includes a dependency-free 2D canvas, TrueType font measurement and rasterization at arbitrary scales, streaming GIF89a / LZW encoder, and specialized challenge renderers such as animated analog clock faces.
 - **DI-First Architecture (No Static Classes)**: Rendering and captcha flows are fully DI-driven (`ICaptchaImageRenderer`, `SessionBasedCaptcha`, `StatelessCaptcha`, shared-key flow). No static entry points are required.
+- **Clock Captcha with Fine-Grained Abstractions**: Every flow ships as a letter (PNG) and an animated clock (GIF) variant. Each exposes a typed generic contract (`ISessionCaptcha<TOptions>`, `IStatelessCaptcha<TOptions>`) alongside the non-generic one, so image dimensions, casing, and challenge rules live in bound options rather than per-request parameters.
 - **Injectable Random for Deterministic Tests**: The renderer accepts an injected `System.Random` (default: `Random.Shared`) so tests can use a deterministic random source while production keeps thread-safe shared randomness.
 - **Nullable Enabled**: The codebase is maintained with nullable reference types enabled to reduce null-related runtime defects and improve API correctness.
 - **.NET 11 Preview Targeting and Stabilization Plan**: Current preview packages target `.NET 11` (along with `.NET 10`). The first stable release is planned after the official `.NET 11` GA release date.
@@ -43,7 +44,9 @@ Every captcha flow below draws through a shared image renderer, and that rendere
 
 The glyph set is built once, while the host starts. If a character can't be resolved — a typo in the font path, a charset the font doesn't cover — the application **fails to start** with a clear error, instead of failing on the first captcha request. There is no default source and no default charset.
 
-In all three scenarios, `AddGlyphSet` declares the characters your flows will generate. It must cover the `Letters` of every `AddSessionBasedCaptcha` / `AddStatelessCaptcha` / `AddSharedKeyStatelessCaptcha` call:
+> **Clock captcha flows don't need glyphs.** The `AddSessionBasedClockCaptcha` / `AddStatelessClockCaptcha` / `AddSharedKeyStatelessClockCaptcha` flows draw an analog clock face through the raster engine and never touch the glyph pipeline, so they can be registered with no glyph source or glyph set at all.
+
+In all three scenarios, `AddGlyphSet` declares the characters your flows will generate. It must cover the `Letters` of every `AddSessionBasedCaptcha` / `AddStatelessCaptcha` / `AddSharedKeyStatelessCaptcha` call (the clock variants are exempt):
 
 ```csharp
 services.AddGlyphSet(options => options.Charset = "2346789ABCDEFGHJKLMNPRTUVWXYZ");
@@ -133,9 +136,9 @@ services.AddSessionBasedCaptcha(option =>
 #### Using MVC Controller
 
 ```csharp
-private readonly ISessionBasedCaptcha _captcha;
+private readonly ISessionCaptcha _captcha;
 
-public SomeController(ISessionBasedCaptcha captcha)
+public SomeController(ISessionCaptcha captcha)
 {
     _captcha = captcha;
 }
@@ -194,7 +197,7 @@ public string CaptchaCode { get; set; }
 ### 6. Validate Input
 
 ```csharp
-_captcha.ValidateCaptchaCode(model.CommentPostModel.CaptchaCode, HttpContext.Session)
+_captcha.Validate(model.CommentPostModel.CaptchaCode, HttpContext.Session)
 ```
 
 To make your code look more cool, you can also write an Action Filter like this:
@@ -202,9 +205,9 @@ To make your code look more cool, you can also write an Action Filter like this:
 ```csharp
 public class ValidateCaptcha : ActionFilterAttribute
 {
-    private readonly ISessionBasedCaptcha _captcha;
+    private readonly ISessionCaptcha _captcha;
 
-    public ValidateCaptcha(ISessionBasedCaptcha captcha)
+    public ValidateCaptcha(ISessionCaptcha captcha)
     {
         _captcha = captcha;
     }
