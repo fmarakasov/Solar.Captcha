@@ -11,7 +11,7 @@ public class StatelessLetterCaptchaTests
 {
     private Mock<IDataProtectionProvider> _mockDataProtectionProvider = null!;
     private Mock<IDataProtector> _mockDataProtector = null!;
-    private Mock<ICaptchaImageRenderer> _mockImageRenderer = null!;
+    private Mock<ILetterCaptchaImageRenderer> _mockImageRenderer = null!;
     private StatelessLetterCaptchaOptions _defaultOptions = null!;
     private StatelessLetterCaptcha _captcha = null!;
 
@@ -31,7 +31,7 @@ public class StatelessLetterCaptchaTests
             CodeLength = 4
         };
 
-        _mockImageRenderer = new Mock<ICaptchaImageRenderer>();
+        _mockImageRenderer = new Mock<ILetterCaptchaImageRenderer>();
 
         _captcha = new StatelessLetterCaptcha(_mockDataProtectionProvider.Object, _mockImageRenderer.Object, _defaultOptions);
     }
@@ -249,7 +249,7 @@ public class StatelessLetterCaptchaTests
         // Act & Assert
         Assert.That(_captcha, Is.Not.Null);
         Assert.That(_captcha, Is.InstanceOf<StatelessLetterCaptcha>());
-        Assert.That(_captcha, Is.InstanceOf<StatelessCaptcha>());
+        Assert.That(_captcha, Is.InstanceOf<StatelessCaptcha<StatelessLetterCaptchaOptions>>());
         Assert.That(_captcha, Is.InstanceOf<IStatelessCaptcha>());
     }
 

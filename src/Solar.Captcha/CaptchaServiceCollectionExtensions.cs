@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Solar.Captcha.GlyphRenderer;
+using Solar.Captcha.Raster;
 
 namespace Solar.Captcha;
 
@@ -25,13 +26,13 @@ public static class CaptchaServiceCollectionExtensions
     public const string DefaultLetters = "2346789ABCDGHKMNPRUVWXYZ";
 
     /// <summary>
-    /// Registers the session-based captcha flow.
+    /// Registers the session-based letter captcha flow.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="options">Optional configuration for the flow.</param>
-    public static void AddSessionBasedCaptcha(this IServiceCollection services, Action<BasicLetterCaptchaOptions>? options = null)
+    public static void AddSessionBasedCaptcha(this IServiceCollection services, Action<SessionBasedLetterCaptchaOptions>? options = null)
     {
-        var option = new BasicLetterCaptchaOptions
+        var option = new SessionBasedLetterCaptchaOptions
         {
             Letters = DefaultLetters,
             SessionName = "CaptchaCode",
@@ -41,12 +42,30 @@ public static class CaptchaServiceCollectionExtensions
         options?.Invoke(option);
 
         services.AddSingleton(option);
-        services.AddCaptchaCharsetRequirement(option.Letters, nameof(BasicLetterCaptchaOptions));
-        services.AddTransient<ISessionBasedCaptcha, BasicLetterCaptcha>();
+        services.AddCaptchaCharsetRequirement(option.Letters, nameof(SessionBasedLetterCaptchaOptions));
+        services.AddTransient<ISessionCaptcha, SessionBasedLetterCaptcha>();
+        services.AddTransient<ISessionCaptcha<SessionBasedLetterCaptchaOptions>, SessionBasedLetterCaptcha>();
     }
 
     /// <summary>
-    /// Registers the stateless captcha flow, which protects its token with Data Protection.
+    /// Registers the session-based clock captcha flow, which needs no glyph source or glyph set.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="options">Optional configuration for the flow.</param>
+    public static void AddSessionBasedClockCaptcha(this IServiceCollection services, Action<SessionBasedClockCaptchaOptions>? options = null)
+    {
+        var option = new SessionBasedClockCaptchaOptions();
+        options?.Invoke(option);
+
+        services.AddSingleton(option);
+        services.AddClockCaptchaValidation(option.Clock, nameof(SessionBasedClockCaptchaOptions));
+        services.AddSingleton<IClockCaptchaImageRenderer>(sp => CreateClockCaptchaRenderer(option.Clock, option.Width, option.Height));
+        services.AddTransient<ISessionCaptcha, SessionBasedClockCaptcha>();
+        services.AddTransient<ISessionCaptcha<SessionBasedClockCaptchaOptions>, SessionBasedClockCaptcha>();
+    }
+
+    /// <summary>
+    /// Registers the stateless letter captcha flow, which protects its token with Data Protection.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="options">Optional configuration for the flow.</param>
@@ -66,10 +85,30 @@ public static class CaptchaServiceCollectionExtensions
         services.AddSingleton(option);
         services.AddCaptchaCharsetRequirement(option.Letters, nameof(StatelessLetterCaptchaOptions));
         services.AddTransient<IStatelessCaptcha, StatelessLetterCaptcha>();
+        services.AddTransient<IStatelessCaptcha<StatelessLetterCaptchaOptions>, StatelessLetterCaptcha>();
     }
 
     /// <summary>
-    /// Registers the stateless captcha flow that protects its token with a shared key.
+    /// Registers the stateless clock captcha flow, which protects its token with Data Protection.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="options">Optional configuration for the flow.</param>
+    public static void AddStatelessClockCaptcha(this IServiceCollection services, Action<StatelessClockCaptchaOptions>? options = null)
+    {
+        services.AddDataProtection();
+
+        var option = new StatelessClockCaptchaOptions();
+        options?.Invoke(option);
+
+        services.AddSingleton(option);
+        services.AddClockCaptchaValidation(option.Clock, nameof(StatelessClockCaptchaOptions));
+        services.AddSingleton<IClockCaptchaImageRenderer>(sp => CreateClockCaptchaRenderer(option.Clock, option.Width, option.Height));
+        services.AddTransient<IStatelessCaptcha, StatelessClockCaptcha>();
+        services.AddTransient<IStatelessCaptcha<StatelessClockCaptchaOptions>, StatelessClockCaptcha>();
+    }
+
+    /// <summary>
+    /// Registers the shared-key stateless letter captcha flow.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="options">Optional configuration for the flow.</param>
@@ -88,6 +127,27 @@ public static class CaptchaServiceCollectionExtensions
         services.AddSingleton(option);
         services.AddCaptchaCharsetRequirement(option.Letters, nameof(SharedKeyStatelessLetterCaptchaOptions));
         services.AddTransient<IStatelessCaptcha, SharedKeyStatelessLetterCaptcha>();
+        services.AddTransient<IStatelessCaptcha<SharedKeyStatelessLetterCaptchaOptions>, SharedKeyStatelessLetterCaptcha>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the shared-key stateless clock captcha flow.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="options">Optional configuration for the flow.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddSharedKeyStatelessClockCaptcha(this IServiceCollection services, Action<SharedKeyStatelessClockCaptchaOptions>? options = null)
+    {
+        var option = new SharedKeyStatelessClockCaptchaOptions();
+        options?.Invoke(option);
+
+        services.AddSingleton(option);
+        services.AddClockCaptchaValidation(option.Clock, nameof(SharedKeyStatelessClockCaptchaOptions));
+        services.AddSingleton<IClockCaptchaImageRenderer>(sp => CreateClockCaptchaRenderer(option.Clock, option.Width, option.Height));
+        services.AddTransient<IStatelessCaptcha, SharedKeyStatelessClockCaptcha>();
+        services.AddTransient<IStatelessCaptcha<SharedKeyStatelessClockCaptchaOptions>, SharedKeyStatelessClockCaptcha>();
 
         return services;
     }
@@ -170,7 +230,7 @@ public static class CaptchaServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<GlyphSetOptions>, GlyphSetStartupValidator>();
 
         services.AddSingleton(_ => Random.Shared);
-        services.AddSingleton<ICaptchaImageRenderer, CaptchaImageRenderer>();
+        services.AddSingleton<ILetterCaptchaImageRenderer, CaptchaImageRenderer>();
 
         return services;
     }
@@ -209,6 +269,63 @@ public static class CaptchaServiceCollectionExtensions
             throw new InvalidOperationException(
                 "A glyph source is already registered. Two sources would make the glyph set depend on " +
                 "registration order; register either AddFontGlyphSource or AddStaticGlyphSource.");
+        }
+    }
+
+    private static IClockCaptchaImageRenderer CreateClockCaptchaRenderer(ClockCaptchaOptions options, int width, int height)
+    {
+        options.Validate();
+        var prototype = options.ToClockRenderOptions(width, height);
+        var renderer = new ClockGifRenderer();
+        return new ClockCaptchaImageRenderer(prototype, renderer);
+    }
+
+    private static void AddClockCaptchaValidation(this IServiceCollection services, ClockCaptchaOptions options, string optionsTypeName)
+    {
+        services.AddOptions<ClockCaptchaOptions>()
+            .Configure(o =>
+            {
+                o.MinuteStep = options.MinuteStep;
+                o.ClockRadius = options.ClockRadius;
+                o.ClockThickness = options.ClockThickness;
+                o.ClockDashThickness = options.ClockDashThickness;
+                o.ClockDashMargin = options.ClockDashMargin;
+                o.ClockDashLength = options.ClockDashLength;
+                o.HandsThickness = options.HandsThickness;
+                o.HourHandLength = options.HourHandLength;
+                o.MinuteHandLength = options.MinuteHandLength;
+                o.GifFrameDelay = options.GifFrameDelay;
+                o.FontPixelSize = options.FontPixelSize;
+                o.FontFamily = options.FontFamily;
+                o.FontPath = options.FontPath;
+                o.HandColor = options.HandColor;
+                o.ClockColor = options.ClockColor;
+                o.BackgroundColor = options.BackgroundColor;
+                o.GradientColor1 = options.GradientColor1;
+                o.GradientColor2 = options.GradientColor2;
+            });
+
+        // Trigger start-up validation of clock geometry, colours, and font family.
+        services.AddOptions<ClockCaptchaOptions>().ValidateOnStart();
+        services.AddSingleton<IValidateOptions<ClockCaptchaOptions>>(
+            _ => new ClockOptionsStartupValidator(options, optionsTypeName));
+    }
+
+    private sealed class ClockOptionsStartupValidator(ClockCaptchaOptions options, string optionsTypeName)
+        : IValidateOptions<ClockCaptchaOptions>
+    {
+        public ValidateOptionsResult Validate(string? name, ClockCaptchaOptions configuredOptions)
+        {
+            try
+            {
+                options.Validate();
+                return ValidateOptionsResult.Success;
+            }
+            catch (Exception exception)
+            {
+                return ValidateOptionsResult.Fail(
+                    $"Startup validation for clock options type '{optionsTypeName}' failed: {exception.Message}");
+            }
         }
     }
 

@@ -13,7 +13,7 @@ namespace Solar.Captcha.Tests;
 public class CaptchaImageMiddlewareTests
 {
     private Mock<RequestDelegate> _mockNext = null!;
-    private Mock<ISessionBasedCaptcha> _mockCaptcha = null!;
+    private Mock<ISessionCaptcha> _mockCaptcha = null!;
     private Mock<HttpContext> _mockHttpContext = null!;
     private Mock<HttpRequest> _mockRequest = null!;
     private Mock<HttpResponse> _mockResponse = null!;
@@ -26,7 +26,7 @@ public class CaptchaImageMiddlewareTests
     public void SetUp()
     {
         _mockNext = new Mock<RequestDelegate>();
-        _mockCaptcha = new Mock<ISessionBasedCaptcha>();
+        _mockCaptcha = new Mock<ISessionCaptcha>();
         _mockHttpContext = new Mock<HttpContext>();
         _mockRequest = new Mock<HttpRequest>();
         _mockResponse = new Mock<HttpResponse>();
@@ -43,6 +43,8 @@ public class CaptchaImageMiddlewareTests
         // Setup Response
         _mockResponse.Setup(x => x.Headers).Returns(_mockHeaders.Object);
         _mockResponse.Setup(x => x.Body).Returns(_responseBodyStream);
+
+        _mockCaptcha.Setup(x => x.ContentType).Returns("image/png");
 
         _middleware = CreateMiddleware();
     }

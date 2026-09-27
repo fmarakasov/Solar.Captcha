@@ -27,7 +27,7 @@ public class StatelessController(IStatelessCaptcha captcha) : Controller
     [Route("get-stateless-captcha")]
     public IActionResult GetStatelessCaptcha()
     {
-        var result = captcha.GenerateCaptcha(100, 36);
+        var result = captcha.GenerateCaptcha();
 
         return Json(new
         {

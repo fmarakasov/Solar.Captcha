@@ -7,7 +7,7 @@ namespace Solar.Captcha;
 
 public class SessionCaptchaImageMiddleware(RequestDelegate next, SessionCaptchaImageMiddlewareOptions options)
 {
-    public async Task Invoke(HttpContext context, ISessionBasedCaptcha captcha)
+    public async Task Invoke(HttpContext context, ISessionCaptcha captcha)
     {
         if (context.Request.Path == options.RequestPath)
         {
@@ -21,7 +21,7 @@ public class SessionCaptchaImageMiddleware(RequestDelegate next, SessionCaptchaI
             var bytes = captcha.GenerateCaptchaImageBytes(context.Session, w, h);
 
             context.Response.StatusCode = StatusCodes.Status200OK;
-            context.Response.ContentType = "image/png";
+            context.Response.ContentType = captcha.ContentType;
 
             if (options.DisableCache)
             {

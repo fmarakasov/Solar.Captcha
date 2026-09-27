@@ -6,27 +6,38 @@ using System.Text.Json;
 
 namespace Solar.Captcha;
 
-public class SharedKeyStatelessCaptchaOptions
+/// <summary>Options for the shared-key stateless letter captcha flow.</summary>
+public class SharedKeyStatelessLetterCaptchaOptions : SharedKeyStatelessImageCaptchaOptions
 {
+    /// <summary>Gets or sets the alphabet the code is drawn from.</summary>
+    public string Letters { get; set; } = CaptchaServiceCollectionExtensions.DefaultLetters;
+
+    /// <summary>Gets or sets the number of characters in the generated code.</summary>
+    public int CodeLength { get; set; } = 4;
+
+    /// <summary>Gets or sets the glyph style the code is drawn with.</summary>
     public CaptchaFontStyle FontStyle { get; set; } = CaptchaFontStyle.Regular;
+
+    /// <summary>Gets or sets whether to draw the background noise lines.</summary>
     public bool DrawLines { get; set; } = true;
-    public string[] BlockedCodes { get; set; } = [];
-    public TimeSpan TokenExpiration { get; set; } = TimeSpan.FromMinutes(5);
-    public string SharedKey { get; set; } = string.Empty; // Base64 encoded 256-bit key
 }
 
-public abstract class SharedKeyStatelessCaptcha : IStatelessCaptcha
+/// <summary>
+/// Base class for stateless captcha flows whose token is protected by a shared 256-bit key. It seals
+/// the generated code into an opaque token and validates a later submission, leaving code generation,
+/// comparison and rendering to subclasses.
+/// </summary>
+public abstract class SharedKeyStatelessCaptcha<TOptions> : IStatelessCaptcha<TOptions>
+    where TOptions : SharedKeyStatelessImageCaptchaOptions
 {
     private const int MaxBlockedCodeRetries = 100;
 
     private readonly byte[] _sharedKey;
-    private readonly ICaptchaImageRenderer _imageRenderer;
-    private readonly SharedKeyStatelessCaptchaOptions _options;
 
-    protected SharedKeyStatelessCaptcha(ICaptchaImageRenderer imageRenderer, SharedKeyStatelessCaptchaOptions options)
+    /// <summary>Creates the flow, validating the shared key up front.</summary>
+    protected SharedKeyStatelessCaptcha(TOptions options)
     {
-        _imageRenderer = imageRenderer ?? throw new ArgumentNullException(nameof(imageRenderer));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
+        Options = options ?? throw new ArgumentNullException(nameof(options));
 
         if (string.IsNullOrWhiteSpace(options.SharedKey))
         {
@@ -47,18 +58,32 @@ public abstract class SharedKeyStatelessCaptcha : IStatelessCaptcha
         }
     }
 
+    /// <inheritdoc />
+    public TOptions Options { get; }
+
+    /// <inheritdoc />
+    public abstract string ContentType { get; }
+
+    /// <summary>Generates a raw captcha code for the challenge.</summary>
     public abstract string GenerateCaptchaCode();
 
-    public StatelessCaptchaResult GenerateCaptcha(int width = 100, int height = 36)
+    /// <summary>Renders the image for a code at the given size.</summary>
+    protected abstract byte[] RenderImage(string captchaCode, int width, int height);
+
+    /// <summary>Compares a submitted answer with the stored code.</summary>
+    protected abstract bool CodesMatch(string? userInputCaptcha, string captchaCode);
+
+    /// <inheritdoc />
+    public StatelessCaptchaResult GenerateCaptcha(int? width = null, int? height = null)
     {
         var captchaCode = GenerateAllowedCaptchaCode();
 
-        var imageBytes = _imageRenderer.Render(width, height, captchaCode, _options.FontStyle, _options.DrawLines);
+        var imageBytes = RenderImage(captchaCode, width ?? Options.Width, height ?? Options.Height);
 
         var tokenData = new CaptchaTokenData
         {
             Code = captchaCode,
-            ExpirationTime = DateTimeOffset.UtcNow.Add(_options.TokenExpiration)
+            ExpirationTime = DateTimeOffset.UtcNow.Add(Options.TokenExpiration)
         };
 
         var serializedData = JsonSerializer.Serialize(tokenData);
@@ -71,31 +96,8 @@ public abstract class SharedKeyStatelessCaptcha : IStatelessCaptcha
         };
     }
 
-    /// <summary>
-    /// Generates a code that is not in <see cref="SharedKeyStatelessCaptchaOptions.BlockedCodes"/>.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when an allowed code could not be produced within the retry budget, which means the
-    /// configured letters cannot produce a code outside <see cref="SharedKeyStatelessCaptchaOptions.BlockedCodes"/>.
-    /// </exception>
-    private string GenerateAllowedCaptchaCode()
-    {
-        var captchaCode = GenerateCaptchaCode();
-        var retries = 0;
-        while (_options.BlockedCodes.Contains(captchaCode))
-        {
-            if (++retries > MaxBlockedCodeRetries)
-            {
-                throw new InvalidOperationException($"Unable to generate a captcha code not in BlockedCodes after {MaxBlockedCodeRetries} attempts.");
-            }
-
-            captchaCode = GenerateCaptchaCode();
-        }
-
-        return captchaCode;
-    }
-
-    public bool Validate(string? userInputCaptcha, string? captchaToken, bool ignoreCase = true)
+    /// <inheritdoc />
+    public bool Validate(string? userInputCaptcha, string? captchaToken)
     {
         if (string.IsNullOrWhiteSpace(userInputCaptcha) || string.IsNullOrWhiteSpace(captchaToken))
         {
@@ -112,13 +114,30 @@ public abstract class SharedKeyStatelessCaptcha : IStatelessCaptcha
                 return false; // Token expired
             }
 
-            var comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            return string.Equals(userInputCaptcha, tokenData.Code, comparison);
+            return CodesMatch(userInputCaptcha, tokenData.Code);
         }
         catch
         {
             return false; // Invalid or corrupted token
         }
+    }
+
+    private string GenerateAllowedCaptchaCode()
+    {
+        var captchaCode = GenerateCaptchaCode();
+        var retries = 0;
+        while (Options.BlockedCodes.Contains(captchaCode))
+        {
+            if (++retries > MaxBlockedCodeRetries)
+            {
+                throw new InvalidOperationException(
+                    $"Unable to generate a captcha code not in BlockedCodes after {MaxBlockedCodeRetries} attempts.");
+            }
+
+            captchaCode = GenerateCaptchaCode();
+        }
+
+        return captchaCode;
     }
 
     private string EncryptData(string plainText)
@@ -149,7 +168,6 @@ public abstract class SharedKeyStatelessCaptcha : IStatelessCaptcha
         using var aes = Aes.Create();
         aes.Key = _sharedKey;
 
-        // Extract IV from the beginning
         var iv = new byte[16];
         Array.Copy(cipherBytes, 0, iv, 0, 16);
         aes.IV = iv;
@@ -158,7 +176,62 @@ public abstract class SharedKeyStatelessCaptcha : IStatelessCaptcha
         using var ms = new MemoryStream(cipherBytes, 16, cipherBytes.Length - 16);
         using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
         using var reader = new StreamReader(cs);
-
         return reader.ReadToEnd();
     }
+}
+
+/// <summary>Shared-key stateless letter captcha.</summary>
+public class SharedKeyStatelessLetterCaptcha(
+    ILetterCaptchaImageRenderer imageRenderer,
+    SharedKeyStatelessLetterCaptchaOptions options)
+    : SharedKeyStatelessCaptcha<SharedKeyStatelessLetterCaptchaOptions>(options)
+{
+    private readonly ILetterCaptchaImageRenderer _imageRenderer =
+        imageRenderer ?? throw new ArgumentNullException(nameof(imageRenderer));
+
+    /// <inheritdoc />
+    public override string ContentType => _imageRenderer.ContentType;
+
+    /// <inheritdoc />
+    public override string GenerateCaptchaCode() =>
+        SecureCaptchaGenerator.GenerateSecureCaptchaCode(Options.Letters, Options.CodeLength);
+
+    /// <inheritdoc />
+    protected override byte[] RenderImage(string captchaCode, int width, int height) =>
+        _imageRenderer.Render(width, height, captchaCode, Options.FontStyle, Options.DrawLines);
+
+    /// <inheritdoc />
+    protected override bool CodesMatch(string? userInputCaptcha, string captchaCode)
+    {
+        var comparison = Options.IgnoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        return string.Equals(userInputCaptcha, captchaCode, comparison);
+    }
+}
+
+/// <summary>Shared-key stateless clock captcha.</summary>
+public class SharedKeyStatelessClockCaptcha(
+    IClockCaptchaImageRenderer imageRenderer,
+    SharedKeyStatelessClockCaptchaOptions options)
+    : SharedKeyStatelessCaptcha<SharedKeyStatelessClockCaptchaOptions>(options)
+{
+    private readonly IClockCaptchaImageRenderer _imageRenderer =
+        imageRenderer ?? throw new ArgumentNullException(nameof(imageRenderer));
+
+    /// <inheritdoc />
+    public override string ContentType => _imageRenderer.ContentType;
+
+    /// <inheritdoc />
+    public override string GenerateCaptchaCode() =>
+        ClockCaptchaCodeGenerator.Generate(Options.Clock.MinuteStep);
+
+    /// <inheritdoc />
+    protected override byte[] RenderImage(string captchaCode, int width, int height)
+    {
+        var (hours, minutes) = ClockCaptchaCode.Parse(captchaCode);
+        return _imageRenderer.Render(width, height, hours, minutes);
+    }
+
+    /// <inheritdoc />
+    protected override bool CodesMatch(string? userInputCaptcha, string captchaCode) =>
+        ClockCaptchaCode.Matches(userInputCaptcha, captchaCode);
 }
