@@ -78,7 +78,7 @@ public class CaptchaRenderingRegistrationTests
         await host.StartAsync();
 
         // Act
-        var renderer = host.Services.GetRequiredService<ICaptchaImageRenderer>();
+        var renderer = host.Services.GetRequiredService<ILetterCaptchaImageRenderer>();
         var image = renderer.Render(200, 100, "ABC123");
 
         // Assert
@@ -144,7 +144,7 @@ public class CaptchaRenderingRegistrationTests
         Assert.That(failure, Is.Not.Null, "start-up should have failed");
         Assert.That(failure, Is.InstanceOf<OptionsValidationException>());
         Assert.That(failure!.Message, Does.Contain("no glyph set is registered"));
-        Assert.That(failure.Message, Does.Contain(nameof(BasicLetterCaptchaOptions)));
+        Assert.That(failure.Message, Does.Contain(nameof(SessionBasedLetterCaptchaOptions)));
     }
 
     [Test]
@@ -166,7 +166,7 @@ public class CaptchaRenderingRegistrationTests
         Assert.That(failure, Is.InstanceOf<OptionsValidationException>());
         Assert.That(failure!.Message, Does.Contain("cannot draw"));
         Assert.That(failure.Message, Does.Contain("'Z'"));
-        Assert.That(failure.Message, Does.Contain(nameof(BasicLetterCaptchaOptions)));
+        Assert.That(failure.Message, Does.Contain(nameof(SessionBasedLetterCaptchaOptions)));
     }
 
     [Test]
@@ -236,8 +236,8 @@ public class CaptchaRenderingRegistrationTests
         await host.StartAsync();
 
         // Act
-        var first = host.Services.GetRequiredService<ICaptchaImageRenderer>();
-        var second = host.Services.GetRequiredService<ICaptchaImageRenderer>();
+        var first = host.Services.GetRequiredService<ILetterCaptchaImageRenderer>();
+        var second = host.Services.GetRequiredService<ILetterCaptchaImageRenderer>();
 
         // Assert
         Assert.That(second, Is.SameAs(first));

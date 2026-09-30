@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 namespace Solar.Captcha.SampleApp.Controllers;
 
-public class HomeController(ISessionBasedCaptcha captcha) : Controller
+public class HomeController(ISessionCaptcha captcha) : Controller
 {
     public IActionResult Index()
     {
@@ -24,9 +24,9 @@ public class HomeController(ISessionBasedCaptcha captcha) : Controller
     }
 
     [Route("captcha-image-action")]
-    public IActionResult CaptchaImage(int width, int height)
+    public IActionResult CaptchaImage()
     {
-        var s = captcha.GenerateCaptchaImageFileStream(HttpContext.Session, width, height);
+        var s = captcha.GenerateCaptchaImageFileStream(HttpContext.Session);
         return s;
     }
 

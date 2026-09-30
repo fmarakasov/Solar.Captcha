@@ -37,7 +37,7 @@ public class SharedKeyStatelessController : Controller
     [Route("get-shared-key-stateless-captcha")]
     public IActionResult GetSharedKeyStatelessCaptcha()
     {
-        var result = _captcha.GenerateCaptcha(100, 36);
+        var result = _captcha.GenerateCaptcha();
 
         return Json(new
         {

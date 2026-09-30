@@ -12,7 +12,7 @@ namespace Solar.Captcha;
 /// declared it would draw (ADR-009). Registered as a singleton, so <see cref="_random"/> must be
 /// safe for concurrent use; the default registration passes <see cref="Random.Shared"/>.
 /// </remarks>
-internal sealed class CaptchaImageRenderer(GlyphSet glyphSet, Random random) : ICaptchaImageRenderer
+internal sealed class CaptchaImageRenderer(GlyphSet glyphSet, Random random) : ILetterCaptchaImageRenderer
 {
     private const int MinRotationDegrees = -10;
     private const int MaxRotationDegrees = 10;
@@ -20,6 +20,9 @@ internal sealed class CaptchaImageRenderer(GlyphSet glyphSet, Random random) : I
 
     private readonly GlyphSet _glyphSet = glyphSet ?? throw new ArgumentNullException(nameof(glyphSet));
     private readonly Random _random = random ?? throw new ArgumentNullException(nameof(random));
+
+    /// <inheritdoc />
+    public string ContentType => "image/png";
 
     /// <inheritdoc />
     public byte[] Render(

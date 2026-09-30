@@ -16,6 +16,10 @@ This document defines the domain model and vocabulary for the Solar.Captcha proj
 | **Glyph Render Options** | Options class describing the font source: a file path (`FontPath`, configuration-bindable) or a stream factory (`FontStreamFactory`, code-only). Exactly one must be set. Validated at DI startup. |
 | **Renderer Construction** | The **Glyph Renderer** (`IGlyphRenderer`) is constructed/injected once (per font), with font loaded from `GlyphRenderOptions`. |
 | **Renderer Call** | `Render(string chars) → GlyphRenderResult` — the **Glyph Renderer**'s per-call contract: no caching, no font path. Called exactly once per application, by the **Glyph Set** builder, at start-up (see Renderer Construction vs. how often the call happens). |
+| **Session Captcha** | `ISessionCaptcha` / `ISessionCaptcha<TOptions>` — flow that stores generated captcha code in the user's `ISession`. |
+| **Stateless Captcha** | `IStatelessCaptcha` / `IStatelessCaptcha<TOptions>` — flow that protects captcha payload with Data Protection or shared HMAC key token. |
+| **Clock Captcha** | Captcha challenge rendering an animated analog clock dial with hour/minute hands asking for target time solution. |
+| **Letter Captcha** | Text/character captcha challenge rendering alphanumeric glyphs into a PNG image. |
 | **Explicit Mode Selection** | The application chooses its **Glyph Source** once, at registration time (`AddStaticGlyphSource` or `AddFontGlyphSource`). There is no default; an application with a registered captcha flow but no Glyph Source fails to start. |
 | **Glyph Pseudographics** | The ASCII-art rendering of a Glyph used in tests (`GlyphAsciiArt`): one text row per glyph row, `#` = set pixel, `.` = unset. Makes glyphs reviewable in test output. |
 | **Required Charset** | The characters an application declares it must be able to draw, via `GlyphSetOptions.Charset`. Must cover the `Letters` of every registered captcha flow; a flow generating a character outside it is a start-up error. |

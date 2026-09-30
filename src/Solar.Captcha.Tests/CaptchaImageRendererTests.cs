@@ -13,7 +13,7 @@ public class CaptchaImageRendererTests
     /// <summary>Every character the static glyph source has an authored bitmap for.</summary>
     private const string TestCharset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    private ICaptchaImageRenderer _renderer = null!;
+    private ILetterCaptchaImageRenderer _renderer = null!;
 
     [SetUp]
     public void SetUp() => _renderer = CreateRenderer();
@@ -22,7 +22,7 @@ public class CaptchaImageRendererTests
         new GlyphSetFactory(new StaticGlyphRenderer())
             .Get(new GlyphSetOptions { Charset = charset, FallbackGlyph = fallbackGlyph });
 
-    private static ICaptchaImageRenderer CreateRenderer(
+    private static ILetterCaptchaImageRenderer CreateRenderer(
         Random? random = null,
         string charset = TestCharset,
         byte[]? fallbackGlyph = null) =>
